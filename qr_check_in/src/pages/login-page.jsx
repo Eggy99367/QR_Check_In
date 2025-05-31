@@ -8,11 +8,11 @@ const LoginPage = () => {
   const [isLoggedin, setIsLoggedin] = useState(false);
 
   const handleGoogleLogin = async () => {
-    const callbackUrl = `${window.location.origin}`;
+    const callbackUrl = `${window.location.origin}/login`;
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const targetUrl = `https://accounts.google.com/o/oauth2/auth?redirect_uri=${encodeURIComponent(
       callbackUrl
-    )}&response_type=token&client_id=${googleClientId}&scope=https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/userinfo.email`;
+    )}&response_type=token&client_id=${googleClientId}&scope=https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/gmail.send`;
     window.location.href = targetUrl;
   };
 

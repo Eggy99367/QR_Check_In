@@ -19,7 +19,7 @@ const HomePage = () => {
 
   useEffect(() => {
     const accessToken = Cookies.get("access_token");
-
+    console.log(accessToken);
     if (!accessToken) {
       navigate("/login");
     }

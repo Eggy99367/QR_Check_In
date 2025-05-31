@@ -1,4 +1,7 @@
 import { Routes, Route, Link } from 'react-router-dom'
+import Navbar from './components/navbar'
+import LoginPage from './pages/login-page'
+import HomePage from './pages/home-page'
 import './App.css'
 
 // Example page components
@@ -18,19 +21,11 @@ const About = () => (
 
 function App() {
   return (
-    <div className="app">
-      <nav>
-        <ul>
-          <li><Link to="/">Home</Link></li>
-          <li><Link to="/about">About</Link></li>
-        </ul>
-      </nav>
-
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<About />} />
+        <Route path="/login" element={<LoginPage />} />
       </Routes>
-    </div>
   )
 }
 

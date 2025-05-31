@@ -1,23 +1,29 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
 import Cookies from "js-cookie";
 import styles from './navbar.module.css';
 
 const Navbar = () => {
-  
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    Cookies.remove("access_token");
+    navigate("/login");
+  }
 
   return (
-    <div className={styles.navbarContainer}>
-      <div className={styles.logoContainer}>
-        <h1>QR Check-In</h1>
-      </div>
-      <div className={styles.navLinksContainer}>
-        <ul className={styles.navLinks}>
-          <li className={styles.navLink}>Home</li>
-          <li className={styles.navLink}>About</li>
-          <li className={styles.navLink}>Contact</li>
-        </ul>
-      </div>
-    </div>
+    <nav>
+        <div className={styles.navbarContainer}>
+            <a href="/" className={styles.logo}>QR Check-In</a>
+            <ul className={styles.navLinks}>
+                <li><a href="/">About</a></li>
+                <li><a href="/">Experiences</a></li>
+                <li><a href="/">Projects</a></li>
+                <li><a href="/">Contact</a></li>
+                <button className={styles.logoutButton} onClick={handleLogout}>Logout</button>
+            </ul>
+        </div>
+    </nav>
   );
 }
 
