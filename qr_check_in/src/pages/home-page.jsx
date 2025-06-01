@@ -12,7 +12,8 @@ const HomePage = () => {
   const [spreadsheetId, setSpreadsheetId] = useState("");
   const [spreadsheetName, setSpreadsheetName] = useState("");
   const [sheetsObj, setsheetsObj] = useState({});
-  const [selectedSheetId, setSelectedSheetId] = useState("");
+  const [selectedSheetTitle, setSelectedSheetTitle] = useState("");
+  const [columnsList, setColumnsList] = useState([]);
 
   const getUserDetails = async (accessToken) => {
     const response = await fetch(
@@ -112,6 +113,25 @@ const HomePage = () => {
     }
   }
 
+  const handleGetSheetInfo = async (selectedSheetTitle) => {
+    setSelectedSheetTitle(selectedSheetTitle);
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${selectedSheetTitle}!A1:Z1`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    const data = await response.json();
+    console.log(data);
+    var tempColumnsList = [];
+    for(const column of data.values[0]){
+      tempColumnsList.push(column);
+    }
+    setColumnsList(tempColumnsList);
+  }
+
   useEffect(() => {
     if (!accessToken) {
       navigate("/login");
@@ -134,20 +154,20 @@ const HomePage = () => {
             <h4>{Object.keys(sheetsObj).length > 0 ? spreadsheetName : "No Sheets Found"}</h4>
             <div className={styles.contentRow}>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Form Response Sheet..." onSelect={(value) => {setSelectedSheetId(sheetsObj[value])}} disabled={Object.keys(sheetsObj).length === 0}/>
+                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Form Response Sheet..." onSelect={(selectedSheetTitle) => {handleGetSheetInfo(selectedSheetTitle)}} disabled={Object.keys(sheetsObj).length === 0}/>
                 </div>
                 <button onClick={handleCreateCheckInSheet} id={styles.createSheetButton} disabled={Object.keys(sheetsObj).length === 0 || (!(Object.keys(sheetsObj).length === 0) && "Check In List" in sheetsObj && "Email Template" in sheetsObj)}>Create Check-In Sheet</button>
             </div>
             <div className={styles.contentRow}>
                 <h5 className={styles.contentColumnTitle}>Email Column:</h5>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Column..." disabled={selectedSheetId === ""}/>
+                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0}/>
                 </div>
             </div>
             <div className={styles.contentRow}>
                 <h5 className={styles.contentColumnTitle}>Name Column:</h5>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Column..." disabled={selectedSheetId === ""}/>
+                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0}/>
                 </div>
             </div>
             <button disabled={Object.keys(sheetsObj).length === 0 || !("Check In List" in sheetsObj)}>Update Check-In List</button>
