@@ -1,10 +1,14 @@
 :root {
-  --primary-color: #2563eb;
+  --primary-color: #0751f0;
   --secondary-color: #1e40af;
-  --text-color: #d4d4d4;
+  --text-color: #1f2937;
   --light-text: #6b7280;
-  --background: #ffffff;
-  --section-bg: #f3f4f6;
+  --background: #f3f4f6;
+  --dark-background: #1f2937;
+  --dark-text: #ffffff;
+  --section-bg: #ffffff;
+  --disabled-color: #ccc;
+  --disabled-text: #666;
   --spacing: 2rem;
   --transition: all 0.3s ease;
 }
@@ -13,10 +17,13 @@ body{
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: var(--background);
 }
 
 nav {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: fixed;
   width: 100%;
   top: 0;
@@ -29,3 +36,87 @@ nav {
   box-sizing: border-box;
 }
 
+/* Typography */
+h1, h2, h3, h4, h5 {
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+
+h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: 1.2rem;
+  font-weight: 550;
+}
+
+h5 {
+  font-size: 1rem;
+  font-weight: 450;
+}
+
+button {
+  background-color: var(--dark-background);
+  color: var(--dark-text);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+}
+
+button:disabled {
+  background-color: var(--disabled-color);
+  color: var(--disabled-text);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--secondary-color);
+  cursor: pointer;
+}
+
+input {
+  width: 100%;
+  height: 40px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-color);
+  background-color: var(--section-bg);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(7, 81, 240, 0.2);
+}
+
+.dropdown {
+  width: 100%;
+  height: 40px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-color);
+  background-color: var(--section-bg);
+}
+
+.dropdown:disabled {
+  color: var(--disabled-text);
+  background-color: var(--disabled-color);
+}

@@ -12,7 +12,7 @@ const LoginPage = () => {
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const targetUrl = `https://accounts.google.com/o/oauth2/auth?redirect_uri=${encodeURIComponent(
       callbackUrl
-    )}&response_type=token&client_id=${googleClientId}&scope=https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/gmail.send`;
+    )}&response_type=token&client_id=${googleClientId}&scope=https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/gmail.send%20https://www.googleapis.com/auth/drive.metadata.readonly`;
     window.location.href = targetUrl;
   };
 
@@ -36,7 +36,7 @@ const LoginPage = () => {
   }, [isLoggedin, navigate]);
 
   return (
-    <div className={styles.container}>
+    <div className="pageContainer">
       <div className={styles.loginBox}>
         <h1 className={styles.title}>Welcome to QR Check-In</h1>
         <p className={styles.subtitle}>Sign in to continue</p>
