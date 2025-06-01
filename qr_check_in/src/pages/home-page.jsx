@@ -15,6 +15,13 @@ const HomePage = () => {
   const [selectedSheetTitle, setSelectedSheetTitle] = useState("");
   const [columnsList, setColumnsList] = useState([]);
 
+  const chekTokenExpired = (res) => {
+    if(res.error && res.error.code === 401){
+      Cookies.remove("access_token");
+      navigate("/login");
+    }
+  }
+
   const getUserDetails = async (accessToken) => {
     const response = await fetch(
       `https://www.googleapis.com/oauth2/v3/userinfo?alt=json&access_token=${accessToken}`
@@ -48,6 +55,8 @@ const HomePage = () => {
       }
     );
     const data = await response.json();
+    console.log(data);
+    chekTokenExpired(data);
     var tempsheetsObj = {};
     for(const sheetInfo of data.sheets){
         tempsheetsObj[sheetInfo.properties.title] = sheetInfo.properties.sheetId;
