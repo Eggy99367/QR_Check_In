@@ -9,9 +9,10 @@ const HomePage = () => {
   const accessToken = Cookies.get('access_token');
   const [userDetails, setUserDetails] = useState({});
   const [spreadsheetsInfo, setSpreadsheetsInfo] = useState({});
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState("");
+  const [spreadsheetId, setSpreadsheetId] = useState("");
   const [spreadsheetName, setSpreadsheetName] = useState("");
   const [sheetsObj, setsheetsObj] = useState({});
+  const [selectedSheetId, setSelectedSheetId] = useState("");
 
   const getUserDetails = async (accessToken) => {
     const response = await fetch(
@@ -37,7 +38,6 @@ const HomePage = () => {
   };
 
   const handleGetSpreadsheetInfo = async () => {
-    const spreadsheetId = spreadsheetUrl.split("/d/")[1].split("/")[0];
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
       {
@@ -49,10 +49,67 @@ const HomePage = () => {
     const data = await response.json();
     var tempsheetsObj = {};
     for(const sheetInfo of data.sheets){
-        tempsheetsObj[sheetInfo.properties.title] = sheetInfo.properties.index;
+        tempsheetsObj[sheetInfo.properties.title] = sheetInfo.properties.sheetId;
     }
     setSpreadsheetName(data.properties.title);
     setsheetsObj(tempsheetsObj);
+  }
+
+  const copySheet = async (templateSheetId, sheetName) => {
+    console.log(`start copying sheet ${sheetName} from ${templateSheetId} to ${spreadsheetId}`);
+    const copyRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${import.meta.env.VITE_TEMPLATE_SPREADSHEET_ID}/sheets/${templateSheetId}:copyTo`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          destinationSpreadsheetId: spreadsheetId,
+        }),
+      }
+    );
+  
+    const copyData = await copyRes.json();
+    if(copyData.error){
+      console.log(copyData.error.message);
+      return;
+    }
+    const newSheetId = copyData.sheetId;
+  
+    // Rename the copied sheet
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        requests: [
+          {
+            updateSheetProperties: {
+              properties: {
+                sheetId: newSheetId,
+                title: sheetName,
+              },
+              fields: "title",
+            },
+          },
+        ],
+      }),
+    });
+    await handleGetSpreadsheetInfo();
+    console.log("Sheet copied and renamed!");
+  }
+
+  const handleCreateCheckInSheet = async () => {
+    if(!("Check In List" in sheetsObj)){
+      await copySheet(import.meta.env.VITE_CHECKIN_SHEET_ID, "Check In List");
+    }
+    if(!("Email Template" in sheetsObj)){
+      await copySheet(import.meta.env.VITE_EMAIL_TEMPLATE_SHEET_ID, "Email Template");
+    }
   }
 
   useEffect(() => {
@@ -69,35 +126,35 @@ const HomePage = () => {
             {sheetsInfo.files && sheetsInfo.files.map((file) => (
                 <a href={`https://docs.google.com/spreadsheets/d/${file.id}`}>{file.name}</a>
             ))} */}
-            <input type="text" placeholder="Enter a Google Spreadsheet URL..." onChange={(e) =>{console.log(e); setSpreadsheetUrl(e.target.value)}}/>
-            <button onClick={handleGetSpreadsheetInfo} disabled={!spreadsheetUrl}>Get Spreadsheet's Information</button>
+            <input type="text" placeholder="Enter a Google Spreadsheet URL..." onChange={(e) =>{setSpreadsheetId(e.target.value.split("/d/")[1].split("/")[0]);}}/>
+            <button onClick={handleGetSpreadsheetInfo} disabled={!spreadsheetId}>Get Spreadsheet's Information</button>
             {/* <h4>or</h4>
             <input type="text" placeholder="Select a Google Sheet..."/> */}
             <hr className={styles.divider}/>
-            <h4>{sheetsObj ? spreadsheetName : "No Sheets Found"}</h4>
+            <h4>{Object.keys(sheetsObj).length > 0 ? spreadsheetName : "No Sheets Found"}</h4>
             <div className={styles.contentRow}>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Form Response Sheet..." disabled={!sheetsObj}/>
+                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Form Response Sheet..." onSelect={(value) => {setSelectedSheetId(sheetsObj[value])}} disabled={Object.keys(sheetsObj).length === 0}/>
                 </div>
-                <button id={styles.createSheetButton} disabled={!sheetsObj || (sheetsObj && "Check In List" in sheetsObj && "Email Template" in sheetsObj)}>Create Check-In Sheet</button>
+                <button onClick={handleCreateCheckInSheet} id={styles.createSheetButton} disabled={Object.keys(sheetsObj).length === 0 || (!(Object.keys(sheetsObj).length === 0) && "Check In List" in sheetsObj && "Email Template" in sheetsObj)}>Create Check-In Sheet</button>
             </div>
             <div className={styles.contentRow}>
                 <h5 className={styles.contentColumnTitle}>Email Column:</h5>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Column..." disabled={!sheetsObj}/>
+                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Column..." disabled={selectedSheetId === ""}/>
                 </div>
             </div>
             <div className={styles.contentRow}>
                 <h5 className={styles.contentColumnTitle}>Name Column:</h5>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Column..." disabled={!sheetsObj}/>
+                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Column..." disabled={selectedSheetId === ""}/>
                 </div>
             </div>
-            <button disabled={!sheetsObj || !("Check In List" in sheetsObj)}>Update Check-In List</button>
+            <button disabled={Object.keys(sheetsObj).length === 0 || !("Check In List" in sheetsObj)}>Update Check-In List</button>
             <h4>Updated XXX People</h4>
             <h4>Haven't Invited: XXX People</h4>
-            <button disabled={!sheetsObj || !("Check In List" in sheetsObj) || !("Email Template" in sheetsObj)}>Sent Invites to those who haven't been invited</button>
-            <button disabled={!sheetsObj || !("Check In List" in sheetsObj) || !("Email Template" in sheetsObj)}>Send Invites to all</button>
+            <button disabled={Object.keys(sheetsObj).length === 0 || !("Check In List" in sheetsObj) || !("Email Template" in sheetsObj)}>Sent Invites to those who haven't been invited</button>
+            <button disabled={Object.keys(sheetsObj).length === 0 || !("Check In List" in sheetsObj) || !("Email Template" in sheetsObj)}>Send Invites to all</button>
         </div>
     </div>
   );
