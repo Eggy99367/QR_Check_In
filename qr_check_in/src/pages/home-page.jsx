@@ -13,12 +13,14 @@ const HomePage = () => {
   const [spreadsheetName, setSpreadsheetName] = useState("");
   const [sheetsObj, setsheetsObj] = useState({});
   const [selectedSheetTitle, setSelectedSheetTitle] = useState("");
+  const [emailColumn, setEmailColumn] = useState("");
+  const [nameColumn, setNameColumn] = useState("");
   const [columnsList, setColumnsList] = useState([]);
+  const [checkInListUpdated, setCheckInListUpdated] = useState(-1);
+  const [haveNotInvited, setHaveNotInvited] = useState(-1);
 
   const checkInListSheetTitle = "Check In List";
   const emailTemplateSheetTitle = "Email Template";
-  var emailColumn = "";
-  var nameColumn = "";
 
   // Check if the token is expired by checking the response from the API
   const chekTokenExpired = (res) => {
@@ -190,6 +192,7 @@ const HomePage = () => {
     
     var checkInListData = {};
     var rowEmail = ""
+    var tempHaveNotInvited = 0;
     for (const row of checkInList.slice(1)){
       var dataObj = {};
       for (let colIndex = 0; colIndex < row.length; colIndex++){
@@ -200,7 +203,9 @@ const HomePage = () => {
         }
       }
       checkInListData[rowEmail] = dataObj;
+      if(!("Verification Mail Sent" in dataObj) || dataObj["Verification Mail Sent"] == ""){tempHaveNotInvited++};
     }
+    console.log(`temp: ${tempHaveNotInvited}`);
 
     const checkInListEmailColumnNum = checkInListColumns.indexOf("Email") + 1;
     const checkInListNameColumnNum = checkInListColumns.indexOf("Name") + 1;
@@ -217,7 +222,10 @@ const HomePage = () => {
       updateSheetData(checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListEmailColumnNum}:R${checkInListFirstEmptyRowNum + updateEmailValues.length}C${checkInListEmailColumnNum}`, "COLUMNS", [updateEmailValues]);
       updateSheetData(checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListNameColumnNum}:R${checkInListFirstEmptyRowNum + updateNameValues.length}C${checkInListNameColumnNum}`, "COLUMNS", [updateNameValues]);
     }
-    
+    setCheckInListUpdated(updateEmailValues.length);
+    setTimeout(() => {setCheckInListUpdated(-1)}, 3000);
+
+    setHaveNotInvited(tempHaveNotInvited + updateEmailValues.length);
   }
     
   useEffect(() => {
@@ -242,18 +250,18 @@ const HomePage = () => {
             <div className={styles.contentRow}>
                 <h5 className={styles.contentColumnTitle}>Email Column:</h5>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {emailColumn = value}}/>
+                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {setEmailColumn(value)}}/>
                 </div>
             </div>
             <div className={styles.contentRow}>
                 <h5 className={styles.contentColumnTitle}>Name Column:</h5>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {nameColumn = value}}/>
+                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {setNameColumn(value)}}/>
                 </div>
             </div>
             <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj)} onClick={handleUpdateCheckInList}>Update Check-In List</button>
-            <h4>Updated XXX People</h4>
-            <h4>Haven't Invited: XXX People</h4>
+            {checkInListUpdated >= 0 && <h4>Updated {checkInListUpdated} People</h4>}
+            {haveNotInvited >= 0 && <h4>Haven't Invited: {haveNotInvited} People</h4>}
             <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)}>Sent Invites to those who haven't been invited</button>
             <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)}>Send Invites to all</button>
         </div>
