@@ -14,11 +14,11 @@ const HomePage = () => {
   const [sheetsObj, setsheetsObj] = useState({});
   const [selectedSheetTitle, setSelectedSheetTitle] = useState("");
   const [columnsList, setColumnsList] = useState([]);
-  const [emailColumn, setEmailColumn] = useState("");
-  const [nameColumn, setNameColumn] = useState("");
 
   const checkInListSheetTitle = "Check In List";
   const emailTemplateSheetTitle = "Email Template";
+  var emailColumn = "";
+  var nameColumn = "";
 
   // Check if the token is expired by checking the response from the API
   const chekTokenExpired = (res) => {
@@ -146,6 +146,29 @@ const HomePage = () => {
     return [];
   }
 
+  // Update the data of a sheet
+  const updateSheetData = async (sheetTitle, range, majorDimension, values) => {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetTitle}!${range}?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          majorDimension: majorDimension,
+          values: values
+        })
+      }
+    );
+    const result = await response.json();
+    if (response.ok) {
+      console.log('Update successful:', result);
+    } else {
+      console.error('Update failed:', result);
+    }
+  }
+
   // Get the columns list of a sheet
   const handleGetSheetInfo = async (selectedSheetTitle) => {
     setSelectedSheetTitle(selectedSheetTitle);
@@ -157,11 +180,44 @@ const HomePage = () => {
   const handleUpdateCheckInList = async () => {
     const emailColumnNumber = columnsList.indexOf(emailColumn) + 1;
     const nameColumnNumber = columnsList.indexOf(nameColumn) + 1;
+    
     const emails = (await getSheetData(selectedSheetTitle, `R2C${emailColumnNumber}:R1048576C${emailColumnNumber}`, "COLUMNS"))[0];
     const names = (await getSheetData(selectedSheetTitle, `R2C${nameColumnNumber}:R1048576C${nameColumnNumber}`, "COLUMNS"))[0];
 
-    const checkInList = await getSheetData(checkInListSheetTitle, "R2C1:R1048576C6", "ROWS");
-    console.log(checkInList);
+    const checkInList = await getSheetData(checkInListSheetTitle, "R1C1:R1048576C6", "ROWS");
+    var checkInListFirstEmptyRowNum = checkInList.length + 1;
+    var checkInListColumns = checkInList[0];
+    
+    var checkInListData = {};
+    var rowEmail = ""
+    for (const row of checkInList.slice(1)){
+      var dataObj = {};
+      for (let colIndex = 0; colIndex < row.length; colIndex++){
+        if(checkInListColumns[colIndex] === "Email"){
+          rowEmail = row[colIndex];
+        }else{
+          dataObj[checkInListColumns[colIndex]] = row[colIndex];
+        }
+      }
+      checkInListData[rowEmail] = dataObj;
+    }
+
+    const checkInListEmailColumnNum = checkInListColumns.indexOf("Email") + 1;
+    const checkInListNameColumnNum = checkInListColumns.indexOf("Name") + 1;
+    var updateEmailValues = [];
+    var updateNameValues = [];
+    for (let responseIndex = 0; responseIndex < emails.length; responseIndex++){
+      if(!(emails[responseIndex] in checkInListData)){
+        // console.log(`adding ${emails[responseIndex]}`);
+        updateEmailValues.push(emails[responseIndex]);
+        updateNameValues.push(names[responseIndex]);
+      }
+    }
+    if (updateEmailValues.length > 0){
+      updateSheetData(checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListEmailColumnNum}:R${checkInListFirstEmptyRowNum + updateEmailValues.length}C${checkInListEmailColumnNum}`, "COLUMNS", [updateEmailValues]);
+      updateSheetData(checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListNameColumnNum}:R${checkInListFirstEmptyRowNum + updateNameValues.length}C${checkInListNameColumnNum}`, "COLUMNS", [updateNameValues]);
+    }
+    
   }
     
   useEffect(() => {
@@ -186,13 +242,13 @@ const HomePage = () => {
             <div className={styles.contentRow}>
                 <h5 className={styles.contentColumnTitle}>Email Column:</h5>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {setEmailColumn(value)}}/>
+                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {emailColumn = value}}/>
                 </div>
             </div>
             <div className={styles.contentRow}>
                 <h5 className={styles.contentColumnTitle}>Name Column:</h5>
                 <div className={styles.dropdownContainer}>
-                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {setNameColumn(value)}}/>
+                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {nameColumn = value}}/>
                 </div>
             </div>
             <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj)} onClick={handleUpdateCheckInList}>Update Check-In List</button>
