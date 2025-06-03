@@ -17,10 +17,8 @@ const Navbar = () => {
           <div className={styles.navbarContainer}>
               <a href="/" className={styles.logo}>QR Check-In</a>
               <ul className={styles.navLinks}>
-                  <li><a href="/">About</a></li>
-                  <li><a href="/">Experiences</a></li>
-                  <li><a href="/">Projects</a></li>
-                  <li><a href="/">Contact</a></li>
+                  <li><a href="/">Manage</a></li>
+                  <li><a href="/check-in">Experiences</a></li>
                   {Cookies.get("access_token") && <button className={styles.logoutButton} onClick={handleLogout}>Logout</button>}
               </ul>
           </div>

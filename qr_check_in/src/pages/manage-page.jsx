@@ -73,6 +73,7 @@ const ManagePage = () => {
   }
 
   // const getUserDetails = async (accessToken) => {
+  //   chekTokenExpired(data);
   //   const response = await fetch(
   //     `https://www.googleapis.com/oauth2/v3/userinfo?alt=json&access_token=${accessToken}`
   //   );
@@ -91,25 +92,16 @@ const ManagePage = () => {
       }
     );
     const data = await response.json();
+    chekTokenExpired(data);
     var tempArray = [["EnterURL", "Enter a Google Spreadsheet URL"]];
     for(const spreadsheetObj of Object.values(data.files)){
       tempArray.push([spreadsheetObj.id, spreadsheetObj.name]);
     }
-    console.log(tempArray);
     setSpreadsheetsInfo(tempArray);
   };
 
-  const handleFileSelect = (value) => {
-    setFileDropdown(value);
-    if(value == "EnterURL"){
-      setSpreadsheetId("");
-    }else{
-      setSpreadsheetId(value);
-    }
-  }
-
   // Get a Spreadsheet's Information
-  const handleGetSpreadsheetInfo = async () => {
+  const getSpreadsheetInfo = async (spreadsheetId) => {
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
       {
@@ -128,6 +120,22 @@ const ManagePage = () => {
     setsheetsObj(tempsheetsObj);
   }
 
+  const handleFileSelect = async (value) => {
+    setFileDropdown(value);
+    if(value == "EnterURL"){
+      setSpreadsheetId("");
+    }else{
+      setSpreadsheetId(value);
+      getSpreadsheetInfo(value);
+    }
+  }
+
+  const handleEnterURL = async (e) => {
+    const id = e.target.value.split("/d/")[1].split("/")[0]
+    setSpreadsheetId(id);
+    getSpreadsheetInfo(id);
+  }
+
   // Copy a sheet from a template spreadsheet to the current spreadsheet
   const copySheet = async (templateSheetId, sheetName) => {
     console.log(`start copying sheet ${sheetName} from ${templateSheetId} to ${spreadsheetId}`);
@@ -142,10 +150,9 @@ const ManagePage = () => {
         body: JSON.stringify({
           destinationSpreadsheetId: spreadsheetId,
         }),
-      }
-    );
-  
+      });
     const copyData = await copyRes.json();
+    chekTokenExpired(copyData);
     if(copyData.error){
       console.log(copyData.error.message);
       return;
@@ -198,6 +205,7 @@ const ManagePage = () => {
       }
     );
     const data = await response.json();
+    chekTokenExpired(data);
     if(data.values){
       return data.values;
     }
@@ -220,6 +228,7 @@ const ManagePage = () => {
       }
     );
     const result = await response.json();
+    chekTokenExpired(result);
     if (response.ok) {
       console.log('Update successful:', result);
     } else {
@@ -289,7 +298,7 @@ const ManagePage = () => {
 
   const sendEmail = async (to, name, subject, message) => {
     const rawEmail = await createEmail(to, name, subject, message);
-  
+    
     const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST',
       headers: {
@@ -300,8 +309,9 @@ const ManagePage = () => {
         raw: rawEmail
       }),
     });
-  
+    
     const data = await response.json();
+    chekTokenExpired(data);
   
     if (response.ok) {
       console.log('Email sent successfully:', data);
@@ -339,7 +349,6 @@ const ManagePage = () => {
         }
       }
     }
-    console.log(sentUpdateValues);
     updateSheetData(checkInListSheetTitle, `R2C${sentColumn + 1}:R${sentUpdateValues.length + 1}C${sentColumn + 1}`, "COLUMNS", [sentUpdateValues]);
   }
     
@@ -356,8 +365,8 @@ const ManagePage = () => {
             <div className={styles.slelctSheetDropdownContainer}>
                 <Dropdown options={spreadsheetsInfo} placeholder="Select a Sheet..." onSelect={(value) => {handleFileSelect(value)}}/>
             </div>
-            {fileDropdown == "EnterURL" && <input type="text" placeholder="Enter URL Here..." onChange={(e) =>{setSpreadsheetId(e.target.value.split("/d/")[1].split("/")[0]);} }/>}
-            <button onClick={handleGetSpreadsheetInfo} disabled={!spreadsheetId}>Get Spreadsheet's Information</button>
+            {fileDropdown == "EnterURL" && <input type="text" placeholder="Enter URL Here..." onChange={(e) =>{handleEnterURL(e)} }/>}
+            {/* <button onClick={handleGetSpreadsheetInfo} disabled={!spreadsheetId}>Get Spreadsheet's Information</button> */}
             <hr className={styles.divider}/>
             <h4>{Object.keys(sheetsObj).length > 0 ? <a href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`} target="_blank">{spreadsheetName}</a> : "No Spreadsheet Found"}</h4>
             <div className={styles.contentRow}>
