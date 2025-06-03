@@ -1,0 +1,336 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Dropdown from '../components/dropdown';
+import styles from './manage-page.module.css';
+import Cookies from "js-cookie";
+import QRCode from 'qrcode';
+
+async function generateQRCodeBase64(data) {
+  try {
+    const base64 = await QRCode.toDataURL(data);
+    return base64;
+  } catch (err) {
+    console.error('Failed to generate QR code:', err);
+    return null;
+  }
+}
+
+async function createEmail(to, name, subject, message) {
+  message = message.replace("{{Name}}", name);
+  const qrCodeImage = await generateQRCodeBase64(to);
+  message = message.replace("{{QRcode}}", `<img src="${qrCodeImage}" alt="QR Code" style="width:200px;height:200px;" />`);
+  console.log(message);
+  const email = 
+    `To: ${to}\r\n` +
+    `Subject: ${subject}\r\n` +
+    `Content-Type: text/html; charset="UTF-8"\r\n` +
+    `\r\n` +
+    `${message}`;
+
+
+  const encodedEmail = btoa(encodeURIComponent(email).replace(/%([0-9A-F]{2})/g, (match, p1) =>
+    String.fromCharCode(parseInt(p1, 16))
+  ));
+
+  return encodedEmail
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+
+const ManagePage = () => {
+  const navigate = useNavigate();
+  const accessToken = Cookies.get('access_token');
+  const [userDetails, setUserDetails] = useState({});
+  const [spreadsheetsInfo, setSpreadsheetsInfo] = useState({});
+  const [spreadsheetId, setSpreadsheetId] = useState("");
+  const [spreadsheetName, setSpreadsheetName] = useState("");
+  const [sheetsObj, setsheetsObj] = useState({});
+  const [selectedSheetTitle, setSelectedSheetTitle] = useState("");
+  const [emailColumn, setEmailColumn] = useState("");
+  const [nameColumn, setNameColumn] = useState("");
+  const [columnsList, setColumnsList] = useState([]);
+  const [checkInListUpdated, setCheckInListUpdated] = useState(-1);
+  const [haveNotInvited, setHaveNotInvited] = useState(-1);
+
+  const checkInListSheetTitle = "Check In List";
+  const emailTemplateSheetTitle = "Email Template";
+
+  // Check if the token is expired by checking the response from the API
+  const chekTokenExpired = (res) => {
+    if(res.error && res.error.code === 401){
+      Cookies.remove("access_token");
+      navigate("/login");
+    }
+  }
+
+  // const getUserDetails = async (accessToken) => {
+  //   const response = await fetch(
+  //     `https://www.googleapis.com/oauth2/v3/userinfo?alt=json&access_token=${accessToken}`
+  //   );
+  //   const data = await response.json();
+  //   console.log(data);
+  //   setUserDetails(data);
+  // };
+
+  const handleGetSpreadsheetsInfo = async () => {
+    const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and 'me' in writers&orderBy=modifiedTime desc`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+    const data = await response.json();
+    setSpreadsheetsInfo(data);
+  };
+
+  // Get a Spreadsheet's Information
+  const handleGetSpreadsheetInfo = async () => {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    const data = await response.json();
+    chekTokenExpired(data);
+    var tempsheetsObj = {};
+    for(const sheetInfo of data.sheets){
+        tempsheetsObj[sheetInfo.properties.title] = sheetInfo.properties.sheetId;
+    }
+    setSpreadsheetName(data.properties.title);
+    setsheetsObj(tempsheetsObj);
+  }
+
+  // Copy a sheet from a template spreadsheet to the current spreadsheet
+  const copySheet = async (templateSheetId, sheetName) => {
+    console.log(`start copying sheet ${sheetName} from ${templateSheetId} to ${spreadsheetId}`);
+    const copyRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${import.meta.env.VITE_TEMPLATE_SPREADSHEET_ID}/sheets/${templateSheetId}:copyTo`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          destinationSpreadsheetId: spreadsheetId,
+        }),
+      }
+    );
+  
+    const copyData = await copyRes.json();
+    if(copyData.error){
+      console.log(copyData.error.message);
+      return;
+    }
+    const newSheetId = copyData.sheetId;
+  
+    // Rename the copied sheet
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        requests: [
+          {
+            updateSheetProperties: {
+              properties: {
+                sheetId: newSheetId,
+                title: sheetName,
+              },
+              fields: "title",
+            },
+          },
+        ],
+      }),
+    });
+    await handleGetSpreadsheetInfo();
+    console.log("Sheet copied and renamed!");
+  }
+
+  // Create a check-in sheet and an email template sheet if they don't exist
+  const handleCreateCheckInSheet = async () => {
+    if(!(checkInListSheetTitle in sheetsObj)){
+      await copySheet(import.meta.env.VITE_CHECKIN_SHEET_ID, checkInListSheetTitle);
+    }
+    if(!(emailTemplateSheetTitle in sheetsObj)){
+      await copySheet(import.meta.env.VITE_EMAIL_TEMPLATE_SHEET_ID, emailTemplateSheetTitle);
+    }
+  }
+
+  // Get data from a sheet
+  const getSheetData = async (sheetTitle, range, majorDimension) => {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetTitle}!${range}?majorDimension=${majorDimension}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    const data = await response.json();
+    if(data.values){
+      return data.values;
+    }
+    return [];
+  }
+
+  // Update the data of a sheet
+  const updateSheetData = async (sheetTitle, range, majorDimension, values) => {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetTitle}!${range}?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          majorDimension: majorDimension,
+          values: values
+        })
+      }
+    );
+    const result = await response.json();
+    if (response.ok) {
+      console.log('Update successful:', result);
+    } else {
+      console.error('Update failed:', result);
+    }
+  }
+
+  // Get the columns list of a sheet
+  const handleGetSheetInfo = async (selectedSheetTitle) => {
+    setSelectedSheetTitle(selectedSheetTitle);
+    const sheetData = await getSheetData(selectedSheetTitle, "R1C1:R1C100", "ROWS");
+    setColumnsList(sheetData[0]);
+  }
+
+  // Update the check-in list
+  const handleUpdateCheckInList = async () => {
+    const emailColumnNumber = columnsList.indexOf(emailColumn) + 1;
+    const nameColumnNumber = columnsList.indexOf(nameColumn) + 1;
+    
+    var emails = (await getSheetData(selectedSheetTitle, `R2C${emailColumnNumber}:R1048576C${emailColumnNumber}`, "COLUMNS"));
+    if (emails.length > 0){emails = emails[0]}
+    var names = (await getSheetData(selectedSheetTitle, `R2C${nameColumnNumber}:R1048576C${nameColumnNumber}`, "COLUMNS"));
+    if (names.length > 0){names = names[0]}
+
+
+
+    const checkInList = await getSheetData(checkInListSheetTitle, "R1C1:R1048576C6", "ROWS");
+    var checkInListFirstEmptyRowNum = checkInList.length + 1;
+    var checkInListColumns = checkInList[0];
+    
+    var checkInListData = {};
+    var rowEmail = ""
+    var tempHaveNotInvited = 0;
+    for (const row of checkInList.slice(1)){
+      var dataObj = {};
+      for (let colIndex = 0; colIndex < row.length; colIndex++){
+        if(checkInListColumns[colIndex] === "Email"){
+          rowEmail = row[colIndex];
+        }else{
+          dataObj[checkInListColumns[colIndex]] = row[colIndex];
+        }
+      }
+      checkInListData[rowEmail] = dataObj;
+      if(!("Verification Mail Sent" in dataObj) || dataObj["Verification Mail Sent"] == ""){tempHaveNotInvited++};
+    }
+
+    const checkInListEmailColumnNum = checkInListColumns.indexOf("Email") + 1;
+    const checkInListNameColumnNum = checkInListColumns.indexOf("Name") + 1;
+    var updateEmailValues = [];
+    var updateNameValues = [];
+    for (let responseIndex = 0; responseIndex < emails.length; responseIndex++){
+      if(!(emails[responseIndex] in checkInListData)){
+        // console.log(`adding ${emails[responseIndex]}`);
+        updateEmailValues.push(emails[responseIndex]);
+        updateNameValues.push(names[responseIndex]);
+      }
+    }
+    if (updateEmailValues.length > 0){
+      updateSheetData(checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListEmailColumnNum}:R${checkInListFirstEmptyRowNum + updateEmailValues.length}C${checkInListEmailColumnNum}`, "COLUMNS", [updateEmailValues]);
+      updateSheetData(checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListNameColumnNum}:R${checkInListFirstEmptyRowNum + updateNameValues.length}C${checkInListNameColumnNum}`, "COLUMNS", [updateNameValues]);
+    }
+    setCheckInListUpdated(updateEmailValues.length);
+    setTimeout(() => {setCheckInListUpdated(-1)}, 3000);
+
+    setHaveNotInvited(tempHaveNotInvited + updateEmailValues.length);
+  }
+
+  const sendEmail = async (to, name) => {
+    const emailTemplates = await getSheetData(emailTemplateSheetTitle, `R2C1:R4C1`, 'COLUMNS');
+    const subject = emailTemplates[0][0];
+    const message = emailTemplates[0][2];
+    const rawEmail = await createEmail(to, name, subject, message);
+  
+    const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        raw: rawEmail
+      }),
+    });
+  
+    const data = await response.json();
+  
+    if (response.ok) {
+      console.log('Email sent successfully:', data);
+    } else {
+      console.error('Email send failed:', data);
+    }
+  }
+    
+  useEffect(() => {
+    if (!accessToken) {
+      navigate("/login");
+    }
+  }, []);
+
+  return (
+    <div className="pageContainer">
+        <div className={styles.contentBox}>
+            <input type="text" placeholder="Enter a Google Spreadsheet URL..." onChange={(e) =>{setSpreadsheetId(e.target.value.split("/d/")[1].split("/")[0]);}}/>
+            <button onClick={handleGetSpreadsheetInfo} disabled={!spreadsheetId}>Get Spreadsheet's Information</button>
+            <hr className={styles.divider}/>
+            <h4>{Object.keys(sheetsObj).length > 0 ? <a href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`} target="_blank">{spreadsheetName}</a> : "No Spreadsheet Found"}</h4>
+            <div className={styles.contentRow}>
+                <div className={styles.dropdownContainer}>
+                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Form Response Sheet..." onSelect={(selectedSheetTitle) => {handleGetSheetInfo(selectedSheetTitle)}} disabled={Object.keys(sheetsObj).length === 0}/>
+                </div>
+                <button onClick={handleCreateCheckInSheet} id={styles.createSheetButton} disabled={Object.keys(sheetsObj).length === 0 || (!(Object.keys(sheetsObj).length === 0) && checkInListSheetTitle in sheetsObj && emailTemplateSheetTitle in sheetsObj)}>Create Check-In Sheet</button>
+            </div>
+            <div className={styles.contentRow}>
+                <h5 className={styles.contentColumnTitle}>Email Column:</h5>
+                <div className={styles.dropdownContainer}>
+                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {setEmailColumn(value)}}/>
+                </div>
+            </div>
+            <div className={styles.contentRow}>
+                <h5 className={styles.contentColumnTitle}>Name Column:</h5>
+                <div className={styles.dropdownContainer}>
+                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {setNameColumn(value)}}/>
+                </div>
+            </div>
+            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj)} onClick={handleUpdateCheckInList}>Update Check-In List</button>
+            {checkInListUpdated >= 0 && <h4>Updated {checkInListUpdated} People</h4>}
+            {haveNotInvited >= 0 && <h4>Haven't Invited: {haveNotInvited} People</h4>}
+            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {sendEmail("sherry07@example.org", "Vince")}}>Sent Invites to those who haven't been invited</button>
+            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)}>Send Invites to all</button>
+        </div>
+    </div>
+  );
+};
+
+export default ManagePage;
