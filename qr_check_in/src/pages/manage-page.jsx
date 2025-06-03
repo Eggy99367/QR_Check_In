@@ -19,7 +19,6 @@ async function createEmail(to, name, subject, message) {
   message = message.replace("{{Name}}", name);
   const qrCodeImage = await generateQRCodeBase64(to);
   message = message.replace("{{QRcode}}", `<img src="${qrCodeImage}" alt="QR Code" style="width:200px;height:200px;" />`);
-  console.log(message);
   const email = 
     `To: ${to}\r\n` +
     `Subject: ${subject}\r\n` +
@@ -36,6 +35,13 @@ async function createEmail(to, name, subject, message) {
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
+}
+
+function getTime(){
+  const now = new Date();
+  const formatted = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ` +
+                    `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+  return formatted; // → "2025-06-03 20:45:00"
 }
 
 
@@ -266,10 +272,7 @@ const ManagePage = () => {
     setHaveNotInvited(tempHaveNotInvited + updateEmailValues.length);
   }
 
-  const sendEmail = async (to, name) => {
-    const emailTemplates = await getSheetData(emailTemplateSheetTitle, `R2C1:R4C1`, 'COLUMNS');
-    const subject = emailTemplates[0][0];
-    const message = emailTemplates[0][2];
+  const sendEmail = async (to, name, subject, message) => {
     const rawEmail = await createEmail(to, name, subject, message);
   
     const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
@@ -290,6 +293,39 @@ const ManagePage = () => {
     } else {
       console.error('Email send failed:', data);
     }
+    return response;
+  }
+
+  const handelSendEmail = async (toAll) => {
+    const checkInList = await getSheetData(checkInListSheetTitle, "R1C1:R1048576C6", "ROWS");
+    if(checkInList.length == 0){
+      console.log("No data in check-in list");
+      return;
+    }
+    const emailColumn = checkInList[0].indexOf("Email");
+    const nameColumn = checkInList[0].indexOf("Name");
+    const sentColumn = checkInList[0].indexOf("Verification Mail Sent");
+
+    const emailTemplates = await getSheetData(emailTemplateSheetTitle, `R2C1:R4C1`, 'COLUMNS');
+    const subject = emailTemplates[0][0];
+    const message = emailTemplates[0][2];
+
+    var sentUpdateValues = [];
+    for(let rowIndex = 1; rowIndex < checkInList.length; rowIndex++){
+      if(!toAll && checkInList[rowIndex].length > sentColumn && checkInList[rowIndex][sentColumn] != ""){
+        sentUpdateValues.push(checkInList[rowIndex][sentColumn]);
+      }else{
+        const response = await sendEmail(checkInList[rowIndex][emailColumn], checkInList[rowIndex][nameColumn], subject, message);
+        if(response.ok){
+          sentUpdateValues.push(getTime());
+        }else{
+          console.log(response);
+          break;
+        }
+      }
+    }
+    console.log(sentUpdateValues);
+    updateSheetData(checkInListSheetTitle, `R2C${sentColumn + 1}:R${sentUpdateValues.length + 1}C${sentColumn + 1}`, "COLUMNS", [sentUpdateValues]);
   }
     
   useEffect(() => {
@@ -326,8 +362,8 @@ const ManagePage = () => {
             <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj)} onClick={handleUpdateCheckInList}>Update Check-In List</button>
             {checkInListUpdated >= 0 && <h4>Updated {checkInListUpdated} People</h4>}
             {haveNotInvited >= 0 && <h4>Haven't Invited: {haveNotInvited} People</h4>}
-            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {sendEmail("sherry07@example.org", "Vince")}}>Sent Invites to those who haven't been invited</button>
-            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)}>Send Invites to all</button>
+            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {handelSendEmail(false)}}>Sent Invites to those who haven't been invited</button>
+            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {handelSendEmail(true)}}>Send Invites to all</button>
         </div>
     </div>
   );
