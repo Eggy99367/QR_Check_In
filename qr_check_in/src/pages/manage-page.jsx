@@ -49,7 +49,8 @@ const ManagePage = () => {
   const navigate = useNavigate();
   const accessToken = Cookies.get('access_token');
   const [userDetails, setUserDetails] = useState({});
-  const [spreadsheetsInfo, setSpreadsheetsInfo] = useState({});
+  const [spreadsheetsInfo, setSpreadsheetsInfo] = useState([]);
+  const [fileDropdown, setFileDropdown] = useState("");
   const [spreadsheetId, setSpreadsheetId] = useState("");
   const [spreadsheetName, setSpreadsheetName] = useState("");
   const [sheetsObj, setsheetsObj] = useState({});
@@ -82,16 +83,30 @@ const ManagePage = () => {
 
   const handleGetSpreadsheetsInfo = async () => {
     const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and 'me' in writers&orderBy=modifiedTime desc`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and 'me' in writers&orderBy=modifiedTime desc`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
     const data = await response.json();
-    setSpreadsheetsInfo(data);
+    var tempArray = [["EnterURL", "Enter a Google Spreadsheet URL"]];
+    for(const spreadsheetObj of Object.values(data.files)){
+      tempArray.push([spreadsheetObj.id, spreadsheetObj.name]);
+    }
+    console.log(tempArray);
+    setSpreadsheetsInfo(tempArray);
   };
+
+  const handleFileSelect = (value) => {
+    setFileDropdown(value);
+    if(value == "EnterURL"){
+      setSpreadsheetId("");
+    }else{
+      setSpreadsheetId(value);
+    }
+  }
 
   // Get a Spreadsheet's Information
   const handleGetSpreadsheetInfo = async () => {
@@ -332,12 +347,16 @@ const ManagePage = () => {
     if (!accessToken) {
       navigate("/login");
     }
+    handleGetSpreadsheetsInfo();
   }, []);
 
   return (
     <div className="pageContainer">
         <div className={styles.contentBox}>
-            <input type="text" placeholder="Enter a Google Spreadsheet URL..." onChange={(e) =>{setSpreadsheetId(e.target.value.split("/d/")[1].split("/")[0]);}}/>
+            <div className={styles.slelctSheetDropdownContainer}>
+                <Dropdown options={spreadsheetsInfo} placeholder="Select a Sheet..." onSelect={(value) => {handleFileSelect(value)}}/>
+            </div>
+            {fileDropdown == "EnterURL" && <input type="text" placeholder="Enter URL Here..." onChange={(e) =>{setSpreadsheetId(e.target.value.split("/d/")[1].split("/")[0]);} }/>}
             <button onClick={handleGetSpreadsheetInfo} disabled={!spreadsheetId}>Get Spreadsheet's Information</button>
             <hr className={styles.divider}/>
             <h4>{Object.keys(sheetsObj).length > 0 ? <a href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`} target="_blank">{spreadsheetName}</a> : "No Spreadsheet Found"}</h4>

@@ -37,6 +37,10 @@
     flex: 6;
 }
 
+.slelctSheetDropdownContainer{
+    width: 100%;
+}
+
 #createSheetButton{
     flex: 4;
     width: 100%;
