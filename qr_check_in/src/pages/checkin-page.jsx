@@ -26,7 +26,7 @@ const CheckInPage = () => {
   const spreadsheetId = searchParams.get('spreadsheetId');
   const checkInListSheetTitle = import.meta.env.VITE_CHECKINLISTSHEETTITLE;
 
-  const updateCheckInList = async () => {
+  const updateCheckInList = async (repeat) => {
     const data = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R1C1:R1048576C6`, "ROWS", navigate);
     
     var tempColObj = {};
@@ -64,7 +64,8 @@ const CheckInPage = () => {
     setCheckInData(tempCheckInData);
     
     console.log("Check In List Updated!");
-    setTimeout(updateCheckInList, 3000);
+    if(repeat)setTimeout(() => {updateCheckInList(true)}, 3000);
+    return tempCheckInData;
   }
   
   const alreadyCheckedIn = (email) => {
@@ -96,8 +97,9 @@ const CheckInPage = () => {
   }
 
   const handleCheckIn = async (email) => {
-    console.log(checkInData);
-    if (!(email in checkInData)){
+    const updatedData = await updateCheckInList(false);
+    console.log(updatedData);
+    if (!(email in updatedData)){
       console.log(`Error: ${email} is not in the check-in list`);
       return false;
     }
@@ -128,7 +130,7 @@ const CheckInPage = () => {
       navigate("/login");
     }
     Utils.getSpreadsheetInfo(accessToken, spreadsheetId, navigate, setSpreadsheetName, setSheetsObj);
-    updateCheckInList();
+    updateCheckInList(true);
   }, []);
 
   useEffect(() => {
