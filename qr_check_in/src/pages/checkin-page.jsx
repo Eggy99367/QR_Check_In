@@ -11,7 +11,7 @@ import * as Utils from '../utils/googleAPIUtils';
 
 const CheckInPage = () => {
   const navigate = useNavigate();
-  // const hasInitialized = useRef(false);
+  const hasInitialized = useRef(false);
   const accessToken = Cookies.get('access_token');
   const [searchParams] = useSearchParams();
   const [spreadsheetName, setSpreadsheetName] = useState("");
@@ -29,11 +29,18 @@ const CheckInPage = () => {
   const updateCheckInList = async () => {
     const data = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R1C1:R1048576C6`, "ROWS", navigate);
     
-    var tempColObj = {};
+    var tempColObj = checkInListColumnsObj;
+    var tempColObjUpdate = false;
     for (let index = 0; index < data[0].length; index++) {
-      tempColObj[data[0][index]] = index ;
+      if(!(data[0][index] in  tempColObj) || tempColObj[data[0][index]] != index){
+        tempColObj[data[0][index]] = index ;
+        tempColObjUpdate = true;
+      }
     }
-    setCheckInListColumnsObj(tempColObj);
+    if(tempColObjUpdate){
+      setCheckInListColumnsObj(tempColObj);
+    }
+      
     
     var checkedInCount = 0;
     const dataLen = data.length;
@@ -64,29 +71,32 @@ const CheckInPage = () => {
     setCheckInData(tempCheckInData);
     
     console.log("Check In List Updated!");
-    return tempCheckInData;
+    return {"columns": tempColObj, "values": tempCheckInData};
   }
   
-  const alreadyCheckedIn = (email) => {
-    if (!(email in checkInData))return false;
-    const data = checkInData[email];
-    if ("Check-In" in data && data["Check-In"] != undefined && data["Check-In"] != "")return true;
+  const alreadyCheckedIn = (data, email) => {
+    const values = data.values;
+    if (!(email in values))return false;
+    const rowData = values[email];
+    if ("Check-In" in rowData && rowData["Check-In"] != undefined && rowData["Check-In"] != "")return true;
     return false;
   }
 
-  const modifyCheckInData = (email, values) => {
-    var data = checkInData;
-    for (const colTitle in values){
-      data[email][colTitle] = values[colTitle];
+  const modifyCheckInData = (data, email, newValues) => {
+    const cols = data.columns;
+    var values = data.values;
+    for (const colTitle in newValues){
+      values[email][colTitle] = newValues[colTitle];
     }
-    console.log(data);
-    setCheckInData(data);
-    return data;
+    setCheckInData(values);
+    return {"columns": cols, "values": values};
   }
 
-  const generateUpdateRow = (email) => {
+  const generateUpdateRow = (data, email) => {
+    const cols = data.columns;
+    const values = data.values;
     var tempRow = [];
-    const rowData = checkInData[email];
+    const rowData = values[email];
     for (const colTitle in checkInListColumnsObj){
       const colIndex = checkInListColumnsObj[colTitle];
       while (tempRow.length - 1 < colIndex) {tempRow.push("")}
@@ -96,26 +106,28 @@ const CheckInPage = () => {
   }
 
   const handleCheckIn = async (email) => {
-    const updatedData = await updateCheckInList(false);
-    console.log(updatedData);
-    if (!(email in updatedData)){
+    var updatedData = await updateCheckInList(false);
+    if (!(email in updatedData.values)){
       console.log(`Error: ${email} is not in the check-in list`);
       return false;
     }
     const curTime = Utils.getTime();
-    if (alreadyCheckedIn(email)){
+    if (alreadyCheckedIn(updatedData, email)){
       console.log(`Warning: ${email} has already checked in`)
       
-      const rowData = modifyCheckInData(email, {"Last Seen": curTime})[email];
-      const updateRowData = generateUpdateRow(email);
+      updatedData = modifyCheckInData(updatedData, email, {"Last Seen": curTime});
+      console.log(updatedData);
+      const updateRowData = generateUpdateRow(updatedData, email);
+      const rowData = updatedData.values[email];
       Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle,
-                            `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
-                            "ROWS", [updateRowData], navigate);
-                            return false;
+        `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
+        "ROWS", [updateRowData], navigate);
+        return false;
     }
-    const rowData = modifyCheckInData(email, {"Check-In": curTime, "Last Seen": curTime})[email];
-    const updateRowData = generateUpdateRow(email);
-    console.log(updateRowData);
+    updatedData = modifyCheckInData(updatedData, email, {"Check-In": curTime, "Last Seen": curTime});
+    console.log(updatedData);
+    const rowData = updatedData.values[email];
+    const updateRowData = generateUpdateRow(updatedData, email);
     Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle,
                           `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
                           "ROWS", [updateRowData], navigate);
@@ -159,7 +171,7 @@ const CheckInPage = () => {
     scanner.render(
       onScanSuccess,
       (error) => {
-        console.warn("Error:", error);
+        // console.warn("Error:", error);
       }
     );
   
