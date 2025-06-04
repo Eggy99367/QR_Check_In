@@ -139,16 +139,25 @@ const CheckInPage = () => {
     };
   }, []);
 
+  const lastScanned = useRef("");
   useEffect(() => {
     const scanner = new Html5QrcodeScanner("reader", {
       qrbox: 300,
       fps: 10,
     });
+
+    const onScanSuccess = (decodedText, decodedResult) => {
+      if (decodedText === lastScanned.current) return;
+      lastScanned.current = decodedText;
+      console.log(`QR Code Scanned: ${decodedText}`);
+      handleCheckIn(decodedText);
+      setTimeout(() => {
+        lastScanned.current = "";
+      }, 3000);
+    };
   
     scanner.render(
-      (decodedText, decodedResult) => {
-        console.log("Success:", decodedText);
-      },
+      onScanSuccess,
       (error) => {
         console.warn("Error:", error);
       }
