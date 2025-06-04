@@ -3,21 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import Dropdown from '../components/dropdown';
 import styles from './manage-page.module.css';
 import Cookies from "js-cookie";
-import QRCode from 'qrcode';
-
-async function generateQRCodeBase64(data) {
-  try {
-    const base64 = await QRCode.toDataURL(data);
-    return base64;
-  } catch (err) {
-    console.error('Failed to generate QR code:', err);
-    return null;
-  }
-}
+import * as Utils from '../utils/googleAPIUtils';
 
 async function createEmail(to, name, subject, message) {
   message = message.replace("{{Name}}", name);
-  const qrCodeImage = await generateQRCodeBase64(to);
+  const qrCodeImage = await Utils.generateQRCodeBase64(to);
   message = message.replace("{{QRcode}}", `<img src="${qrCodeImage}" alt="QR Code" style="width:200px;height:200px;" />`);
   const email = 
     `To: ${to}\r\n` +
@@ -25,7 +15,6 @@ async function createEmail(to, name, subject, message) {
     `Content-Type: text/html; charset="UTF-8"\r\n` +
     `\r\n` +
     `${message}`;
-
 
   const encodedEmail = btoa(encodeURIComponent(email).replace(/%([0-9A-F]{2})/g, (match, p1) =>
     String.fromCharCode(parseInt(p1, 16))
@@ -37,18 +26,12 @@ async function createEmail(to, name, subject, message) {
     .replace(/=+$/, '');
 }
 
-function getTime(){
-  const now = new Date();
-  const formatted = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ` +
-                    `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-  return formatted; // → "2025-06-03 20:45:00"
-}
+
 
 
 const ManagePage = () => {
   const navigate = useNavigate();
   const accessToken = Cookies.get('access_token');
-  const [userDetails, setUserDetails] = useState({});
   const [spreadsheetsInfo, setSpreadsheetsInfo] = useState([]);
   const [fileDropdown, setFileDropdown] = useState("");
   const [spreadsheetId, setSpreadsheetId] = useState("");
@@ -64,24 +47,6 @@ const ManagePage = () => {
   const checkInListSheetTitle = "Check In List";
   const emailTemplateSheetTitle = "Email Template";
 
-  // Check if the token is expired by checking the response from the API
-  const chekTokenExpired = (res) => {
-    if(res.error && res.error.code === 401){
-      Cookies.remove("access_token");
-      navigate("/login");
-    }
-  }
-
-  // const getUserDetails = async (accessToken) => {
-  //   chekTokenExpired(data);
-  //   const response = await fetch(
-  //     `https://www.googleapis.com/oauth2/v3/userinfo?alt=json&access_token=${accessToken}`
-  //   );
-  //   const data = await response.json();
-  //   console.log(data);
-  //   setUserDetails(data);
-  // };
-
   const handleGetSpreadsheetsInfo = async () => {
     const response = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and 'me' in writers&orderBy=modifiedTime desc`,
@@ -92,7 +57,7 @@ const ManagePage = () => {
       }
     );
     const data = await response.json();
-    chekTokenExpired(data);
+    Utils.checkTokenExpired(navigate, data);
     var tempArray = [["EnterURL", "Enter a Google Spreadsheet URL"]];
     for(const spreadsheetObj of Object.values(data.files)){
       tempArray.push([spreadsheetObj.id, spreadsheetObj.name]);
@@ -111,7 +76,7 @@ const ManagePage = () => {
       }
     );
     const data = await response.json();
-    chekTokenExpired(data);
+    Utils.checkTokenExpired(navigate, data);
     var tempsheetsObj = {};
     for(const sheetInfo of data.sheets){
         tempsheetsObj[sheetInfo.properties.title] = sheetInfo.properties.sheetId;
@@ -152,7 +117,7 @@ const ManagePage = () => {
         }),
       });
     const copyData = await copyRes.json();
-    chekTokenExpired(copyData);
+    Utils.checkTokenExpired(navigate, copyData);
     if(copyData.error){
       console.log(copyData.error.message);
       return;
@@ -194,52 +159,10 @@ const ManagePage = () => {
     }
   }
 
-  // Get data from a sheet
-  const getSheetData = async (sheetTitle, range, majorDimension) => {
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetTitle}!${range}?majorDimension=${majorDimension}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-    const data = await response.json();
-    chekTokenExpired(data);
-    if(data.values){
-      return data.values;
-    }
-    return [];
-  }
-
-  // Update the data of a sheet
-  const updateSheetData = async (sheetTitle, range, majorDimension, values) => {
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetTitle}!${range}?valueInputOption=USER_ENTERED`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          majorDimension: majorDimension,
-          values: values
-        })
-      }
-    );
-    const result = await response.json();
-    chekTokenExpired(result);
-    if (response.ok) {
-      console.log('Update successful:', result);
-    } else {
-      console.error('Update failed:', result);
-    }
-  }
-
   // Get the columns list of a sheet
   const handleGetSheetInfo = async (selectedSheetTitle) => {
     setSelectedSheetTitle(selectedSheetTitle);
-    const sheetData = await getSheetData(selectedSheetTitle, "R1C1:R1C100", "ROWS");
+    const sheetData = await Utils.getSheetData(accessToken, spreadsheetId, selectedSheetTitle, "R1C1:R1C100", "ROWS", navigate);
     setColumnsList(sheetData[0]);
   }
 
@@ -248,14 +171,14 @@ const ManagePage = () => {
     const emailColumnNumber = columnsList.indexOf(emailColumn) + 1;
     const nameColumnNumber = columnsList.indexOf(nameColumn) + 1;
     
-    var emails = (await getSheetData(selectedSheetTitle, `R2C${emailColumnNumber}:R1048576C${emailColumnNumber}`, "COLUMNS"));
+    var emails = (await Utils.getSheetData(accessToken, spreadsheetId, selectedSheetTitle, `R2C${emailColumnNumber}:R1048576C${emailColumnNumber}`, "COLUMNS", navigate));
     if (emails.length > 0){emails = emails[0]}
-    var names = (await getSheetData(selectedSheetTitle, `R2C${nameColumnNumber}:R1048576C${nameColumnNumber}`, "COLUMNS"));
+    var names = (await Utils.getSheetData(accessToken, spreadsheetId, selectedSheetTitle, `R2C${nameColumnNumber}:R1048576C${nameColumnNumber}`, "COLUMNS", navigate));
     if (names.length > 0){names = names[0]}
 
 
 
-    const checkInList = await getSheetData(checkInListSheetTitle, "R1C1:R1048576C6", "ROWS");
+    const checkInList = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, "R1C1:R1048576C6", "ROWS", navigate);
     var checkInListFirstEmptyRowNum = checkInList.length + 1;
     var checkInListColumns = checkInList[0];
     
@@ -287,8 +210,8 @@ const ManagePage = () => {
       }
     }
     if (updateEmailValues.length > 0){
-      updateSheetData(checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListEmailColumnNum}:R${checkInListFirstEmptyRowNum + updateEmailValues.length}C${checkInListEmailColumnNum}`, "COLUMNS", [updateEmailValues]);
-      updateSheetData(checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListNameColumnNum}:R${checkInListFirstEmptyRowNum + updateNameValues.length}C${checkInListNameColumnNum}`, "COLUMNS", [updateNameValues]);
+      Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListEmailColumnNum}:R${checkInListFirstEmptyRowNum + updateEmailValues.length}C${checkInListEmailColumnNum}`, "COLUMNS", [updateEmailValues], navigate);
+      Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListNameColumnNum}:R${checkInListFirstEmptyRowNum + updateNameValues.length}C${checkInListNameColumnNum}`, "COLUMNS", [updateNameValues], navigate);
     }
     setCheckInListUpdated(updateEmailValues.length);
     setTimeout(() => {setCheckInListUpdated(-1)}, 3000);
@@ -311,7 +234,7 @@ const ManagePage = () => {
     });
     
     const data = await response.json();
-    chekTokenExpired(data);
+    Utils.checkTokenExpired(navigate, data);
   
     if (response.ok) {
       console.log('Email sent successfully:', data);
@@ -322,7 +245,7 @@ const ManagePage = () => {
   }
 
   const handelSendEmail = async (toAll) => {
-    const checkInList = await getSheetData(checkInListSheetTitle, "R1C1:R1048576C6", "ROWS");
+    const checkInList = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, "R1C1:R1048576C6", "ROWS", navigate);
     if(checkInList.length == 0){
       console.log("No data in check-in list");
       return;
@@ -331,7 +254,7 @@ const ManagePage = () => {
     const nameColumn = checkInList[0].indexOf("Name");
     const sentColumn = checkInList[0].indexOf("Verification Mail Sent");
 
-    const emailTemplates = await getSheetData(emailTemplateSheetTitle, `R2C1:R4C1`, 'COLUMNS');
+    const emailTemplates = await Utils.getSheetData(accessToken, spreadsheetId, emailTemplateSheetTitle, `R2C1:R4C1`, 'COLUMNS', navigate);
     const subject = emailTemplates[0][0];
     const message = emailTemplates[0][2];
 
@@ -342,14 +265,14 @@ const ManagePage = () => {
       }else{
         const response = await sendEmail(checkInList[rowIndex][emailColumn], checkInList[rowIndex][nameColumn], subject, message);
         if(response.ok){
-          sentUpdateValues.push(getTime());
+          sentUpdateValues.push(Utils.getTime());
         }else{
           console.log(response);
           break;
         }
       }
     }
-    updateSheetData(checkInListSheetTitle, `R2C${sentColumn + 1}:R${sentUpdateValues.length + 1}C${sentColumn + 1}`, "COLUMNS", [sentUpdateValues]);
+    Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R2C${sentColumn + 1}:R${sentUpdateValues.length + 1}C${sentColumn + 1}`, "COLUMNS", [sentUpdateValues], navigate);
   }
     
   useEffect(() => {
@@ -366,7 +289,6 @@ const ManagePage = () => {
                 <Dropdown options={spreadsheetsInfo} placeholder="Select a Sheet..." onSelect={(value) => {handleFileSelect(value)}}/>
             </div>
             {fileDropdown == "EnterURL" && <input type="text" placeholder="Enter URL Here..." onChange={(e) =>{handleEnterURL(e)} }/>}
-            {/* <button onClick={handleGetSpreadsheetInfo} disabled={!spreadsheetId}>Get Spreadsheet's Information</button> */}
             <hr className={styles.divider}/>
             <h4>{Object.keys(sheetsObj).length > 0 ? <a href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`} target="_blank">{spreadsheetName}</a> : "No Spreadsheet Found"}</h4>
             <div className={styles.contentRow}>
@@ -390,8 +312,19 @@ const ManagePage = () => {
             <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj)} onClick={handleUpdateCheckInList}>Update Check-In List</button>
             {checkInListUpdated >= 0 && <h4>Updated {checkInListUpdated} People</h4>}
             {haveNotInvited >= 0 && <h4>Haven't Invited: {haveNotInvited} People</h4>}
-            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {handelSendEmail(false)}}>Sent Invites to those who haven't been invited</button>
-            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {handelSendEmail(true)}}>Send Invites to all</button>
+            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {handelSendEmail(false)}}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-send" viewBox="0 0 16 16">
+                <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
+              </svg>
+              Sent Invites to those who haven't been invited
+            </button>
+            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {handelSendEmail(true)}}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-send" viewBox="0 0 16 16">
+                <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
+              </svg>
+              Send Invites to all
+            </button>
+            <button onClick={() => {navigate(`/checkin?spreadsheetId=${spreadsheetId}`)}} disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj)}>Start Check-In</button>
         </div>
     </div>
   );
