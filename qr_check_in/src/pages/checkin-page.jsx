@@ -157,7 +157,7 @@ const CheckInPage = () => {
     // if (hasInitialized.current) return;
     // hasInitialized.current = true;
     const scanner = new Html5QrcodeScanner("reader", {
-      qrbox: 150,
+      qrbox: window.innerWidth <= 768 ? 100 : 200,
       fps: 10,
       aspectRatio: 1,
       rememberLastUsedCamera: false,
@@ -188,9 +188,9 @@ const CheckInPage = () => {
 
   return (
     <div className="pageContainer">
-      <audio id="successAudio" src="../../public/success1.mp3" preload="auto"></audio>
-      <audio id="warningAudio" src="../../public/warning.mp3" preload="auto"></audio>
-      <audio id="errorAudio" src="../../public/error.mp3" preload="auto"></audio>
+      <audio id="successAudio" src="/success1.mp3" preload="auto"></audio>
+      <audio id="warningAudio" src="/warning.mp3" preload="auto"></audio>
+      <audio id="errorAudio" src="/error.mp3" preload="auto"></audio>
       <div className={styles.contentBox}>
         <h4>{spreadsheetName === "" ? "Loading..." : spreadsheetName}</h4>
         <h5>Total Registrations: {totalRegistrations} / Checked In: {checkedIn} / Not Checked In: {notCheckedIn}</h5>

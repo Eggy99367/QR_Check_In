@@ -160,3 +160,9 @@ div#reader__header_message {
 div#reader img[src^="data:image/svg+xml;base64"][style*="top: 4px"][style*="right: 4px"] {
   display: none !important;
 }
+
+@media (max-width: 768px) {
+  div#reader {
+    width: 100%;
+  }
+}
