@@ -138,9 +138,9 @@ a:visited {
   background-color: var(--disabled-color);
 }
 
-/* div#reader {
+div#reader {
   border: none !important;
-  width: 100%;
+  width: 60%;
 }
 
 div#reader__dashboard_section {
@@ -159,4 +159,4 @@ div#reader__header_message {
 
 /* div#reader img[src^="data:image/svg+xml;base64"][style*="top: 4px"][style*="right: 4px"] {
   display: none !important;
-} */
+}

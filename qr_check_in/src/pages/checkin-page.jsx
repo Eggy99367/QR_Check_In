@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Dropdown from '../components/dropdown';
 import styles from './checkin-page.module.css';
 import Cookies from "js-cookie";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5QrcodeScanner, Html5QrcodeScanType } from "html5-qrcode";
 import * as Utils from '../utils/googleAPIUtils';
 
 
@@ -25,6 +25,10 @@ const CheckInPage = () => {
 
   const spreadsheetId = searchParams.get('spreadsheetId');
   const checkInListSheetTitle = import.meta.env.VITE_CHECKINLISTSHEETTITLE;
+
+  const onSuccessAudio = new Audio('../../public/success1.mp3');
+  const onWarningAudio = new Audio('../../public/warning.mp3');
+  const onErrorAudio = new Audio('../../public/error.mp3');
 
   const updateCheckInList = async () => {
     const data = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R1C1:R1048576C6`, "ROWS", navigate);
@@ -109,6 +113,7 @@ const CheckInPage = () => {
     var updatedData = await updateCheckInList(false);
     if (!(email in updatedData.values)){
       console.log(`Error: ${email} is not in the check-in list`);
+      onErrorAudio.play();
       return false;
     }
     const curTime = Utils.getTime();
@@ -122,7 +127,8 @@ const CheckInPage = () => {
       Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle,
         `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
         "ROWS", [updateRowData], navigate);
-        return false;
+      onWarningAudio.play();
+      return false;
     }
     updatedData = modifyCheckInData(updatedData, email, {"Check-In": curTime, "Last Seen": curTime});
     console.log(updatedData);
@@ -131,6 +137,7 @@ const CheckInPage = () => {
     Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle,
                           `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
                           "ROWS", [updateRowData], navigate);
+    onSuccessAudio.play();
     return true;
   }
 
@@ -154,8 +161,13 @@ const CheckInPage = () => {
     // if (hasInitialized.current) return;
     // hasInitialized.current = true;
     const scanner = new Html5QrcodeScanner("reader", {
-      qrbox: 300,
+      qrbox: 150,
       fps: 10,
+      aspectRatio: 1,
+      rememberLastUsedCamera: false,
+      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+      showTorchButtonIfSupported: true,
+
     });
 
     const onScanSuccess = (decodedText, decodedResult) => {
