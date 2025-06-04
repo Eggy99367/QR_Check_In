@@ -11,7 +11,7 @@ import * as Utils from '../utils/googleAPIUtils';
 
 const CheckInPage = () => {
   const navigate = useNavigate();
-  const hasInitialized = useRef(false);
+  // const hasInitialized = useRef(false);
   const accessToken = Cookies.get('access_token');
   const [searchParams] = useSearchParams();
   const [spreadsheetName, setSpreadsheetName] = useState("");
@@ -26,7 +26,7 @@ const CheckInPage = () => {
   const spreadsheetId = searchParams.get('spreadsheetId');
   const checkInListSheetTitle = import.meta.env.VITE_CHECKINLISTSHEETTITLE;
 
-  const updateCheckInList = async (repeat) => {
+  const updateCheckInList = async () => {
     const data = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R1C1:R1048576C6`, "ROWS", navigate);
     
     var tempColObj = {};
@@ -64,7 +64,6 @@ const CheckInPage = () => {
     setCheckInData(tempCheckInData);
     
     console.log("Check In List Updated!");
-    if(repeat)setTimeout(() => {updateCheckInList(true)}, 3000);
     return tempCheckInData;
   }
   
@@ -124,13 +123,20 @@ const CheckInPage = () => {
   }
 
   useEffect(() => {
-    if (hasInitialized.current) return;
-      hasInitialized.current = true;
+    // if (hasInitialized.current) return;
+    //   hasInitialized.current = true;
     if (!accessToken) {
       navigate("/login");
     }
     Utils.getSpreadsheetInfo(accessToken, spreadsheetId, navigate, setSpreadsheetName, setSheetsObj);
-    updateCheckInList(true);
+    updateCheckInList();
+    const updateCheckInListInterval = setInterval(() => {
+      updateCheckInList();
+    }, 2000);
+  
+    return () => {
+      clearInterval(updateCheckInListInterval);
+    };
   }, []);
 
   useEffect(() => {
