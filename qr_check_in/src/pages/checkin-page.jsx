@@ -135,8 +135,6 @@ const CheckInPage = () => {
   }
 
   useEffect(() => {
-    // if (hasInitialized.current) return;
-    //   hasInitialized.current = true;
     if (!accessToken) {
       navigate("/login");
     }
@@ -153,6 +151,8 @@ const CheckInPage = () => {
 
   const lastScanned = useRef("");
   useEffect(() => {
+    // if (hasInitialized.current) return;
+    // hasInitialized.current = true;
     const scanner = new Html5QrcodeScanner("reader", {
       qrbox: 300,
       fps: 10,
@@ -182,7 +182,6 @@ const CheckInPage = () => {
     <div className="pageContainer">
       <div className={styles.contentBox}>
         <h4>{spreadsheetName === "" ? "Loading..." : spreadsheetName}</h4>
-        <button onClick={() => {handleCheckIn("vincent.tw99367@gmail.com")}}></button>
         <h5>Total Registrations: {totalRegistrations} / Checked In: {checkedIn} / Not Checked In: {notCheckedIn}</h5>
         <div id="reader"></div>
       </div>
