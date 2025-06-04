@@ -137,3 +137,26 @@ a:visited {
   color: var(--disabled-text);
   background-color: var(--disabled-color);
 }
+
+div#reader {
+  border: none !important;
+  width: 100%;
+}
+
+div#reader__dashboard_section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+div#reader__dashboard_section button {
+  margin: 0 0;
+}
+
+div#reader__header_message {
+  border-radius: 5px !important;
+}
+
+/* div#reader img[src^="data:image/svg+xml;base64"][style*="top: 4px"][style*="right: 4px"] {
+  display: none !important;
+} */

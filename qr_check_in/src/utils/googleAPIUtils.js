@@ -19,11 +19,31 @@ export async function generateQRCodeBase64(data) {
 }
 
 export function checkTokenExpired (navigateFunc, res) {
-    if(res.error && res.error.code === 401){
-      Cookies.remove("access_token");
-      navigateFunc("/login");
-    }
+  if(res.error && res.error.code === 401){
+    Cookies.remove("access_token");
+    navigateFunc("/login");
   }
+}
+
+// Get a Spreadsheet's Information
+export async function getSpreadsheetInfo (accessToken, spreadsheetId, navigateFunc, setSpreadsheetNameFunc, setsheetsObjFunc) {
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+  const data = await response.json();
+  checkTokenExpired(navigateFunc, data);
+  var tempsheetsObj = {};
+  for(const sheetInfo of data.sheets){
+      tempsheetsObj[sheetInfo.properties.title] = sheetInfo.properties.sheetId;
+  }
+  setSpreadsheetNameFunc(data.properties.title);
+  setsheetsObjFunc(tempsheetsObj);
+}
 
 // Get data from a sheet
 export async function getSheetData (accessToken, spreadsheetId, sheetTitle, range, majorDimension, navigateFunc) {
@@ -45,24 +65,24 @@ export async function getSheetData (accessToken, spreadsheetId, sheetTitle, rang
 
 // Update the data of a sheet
 export async function updateSheetData (accessToken, spreadsheetId, sheetTitle, range, majorDimension, values, navigateFunc) {
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetTitle}!${range}?valueInputOption=USER_ENTERED`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          majorDimension: majorDimension,
-          values: values
-        })
-      }
-    );
-    const result = await response.json();
-    checkTokenExpired(navigateFunc, result);
-    if (response.ok) {
-      console.log('Update successful:', result);
-    } else {
-      console.error('Update failed:', result);
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetTitle}!${range}?valueInputOption=USER_ENTERED`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        majorDimension: majorDimension,
+        values: values
+      })
     }
+  );
+  const result = await response.json();
+  checkTokenExpired(navigateFunc, result);
+  if (response.ok) {
+    console.log('Update successful:', result);
+  } else {
+    console.error('Update failed:', result);
+  }
 }

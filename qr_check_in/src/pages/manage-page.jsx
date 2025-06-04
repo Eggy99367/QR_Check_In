@@ -26,9 +26,6 @@ async function createEmail(to, name, subject, message) {
     .replace(/=+$/, '');
 }
 
-
-
-
 const ManagePage = () => {
   const navigate = useNavigate();
   const accessToken = Cookies.get('access_token');
@@ -44,8 +41,8 @@ const ManagePage = () => {
   const [checkInListUpdated, setCheckInListUpdated] = useState(-1);
   const [haveNotInvited, setHaveNotInvited] = useState(-1);
 
-  const checkInListSheetTitle = "Check In List";
-  const emailTemplateSheetTitle = "Email Template";
+  const checkInListSheetTitle = import.meta.env.VITE_CHECKINLISTSHEETTITLE;
+  const emailTemplateSheetTitle = import.meta.env.VITE_EMAILTEMPLATESHEETTITLE;
 
   const handleGetSpreadsheetsInfo = async () => {
     const response = await fetch(
@@ -91,14 +88,14 @@ const ManagePage = () => {
       setSpreadsheetId("");
     }else{
       setSpreadsheetId(value);
-      getSpreadsheetInfo(value);
+      Utils.getSpreadsheetInfo(accessToken, value, navigate, setSpreadsheetName, setsheetsObj);
     }
   }
 
   const handleEnterURL = async (e) => {
     const id = e.target.value.split("/d/")[1].split("/")[0]
     setSpreadsheetId(id);
-    getSpreadsheetInfo(id);
+    Utils.getSpreadsheetInfo(accessToken, id, navigate, setSpreadsheetName, setsheetsObj);
   }
 
   // Copy a sheet from a template spreadsheet to the current spreadsheet
