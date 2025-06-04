@@ -21,31 +21,56 @@ const CheckInPage = () => {
   const [totalRegistrations, setTotalRegistrations] = useState(0);
   const [checkedIn, setCheckedIn] = useState(0);
   const [notCheckedIn, setNotCheckedIn] = useState(0);
+  const [checkInData, setCheckInData] = useState({});
 
   const spreadsheetId = searchParams.get('spreadsheetId');
   const checkInListSheetTitle = import.meta.env.VITE_CHECKINLISTSHEETTITLE;
 
   const updateCheckInList = async () => {
-    const checkinData = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R1C1:R1048576C6`, "ROWS", navigate);
+    const data = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R1C1:R1048576C6`, "ROWS", navigate);
 
     var tempColObj = {};
-    for (let index = 0; index < checkinData[0].length; index++) {
-      tempColObj[checkinData[0][index]] = index ;
+    for (let index = 0; index < data[0].length; index++) {
+      tempColObj[data[0][index]] = index ;
     }
     setCheckInListColumnsObj(tempColObj);
     
     var checkedInCount = 0;
-    for (const row of checkinData.slice(1)){
-      if(row.length > tempColObj["Check-In"] && row[tempColObj["Check-In"]] != ""){
-        checkedInCount++;
+    const dataLen = data.length;
+    var tempCheckInData = {}
+    for (let rowIndex = 1; rowIndex < dataLen; rowIndex++){
+      var row = data[rowIndex];
+      var rowData = {};
+      var rowEmail = "";
+      for (const colTitle in tempColObj){
+        let colIndex = tempColObj[colTitle];
+        if (colIndex >= row.length){
+          continue;
+        }
+        if (colTitle === "Email"){
+          rowEmail = row[colIndex];
+        }else{
+          rowData[colTitle] = row[colIndex];
+          if(colTitle === "Check-In" && row[tempColObj[colTitle]] != undefined && row[tempColObj[colTitle]] != ""){
+            checkedInCount++;
+          }
+        }
       }
+      tempCheckInData[rowEmail] = rowData;
     }
-    setTotalRegistrations(checkinData.length - 1);
+
+    console.log(tempCheckInData)
+
+    setTotalRegistrations(dataLen - 1);
     setCheckedIn(checkedInCount);
-    setNotCheckedIn(checkinData.length - checkedInCount - 1);
+    setNotCheckedIn(dataLen - checkedInCount - 1);
 
     console.log("Check In List Updated!");
     setTimeout(updateCheckInList, 3000);
+  }
+
+  const handleCheckIn = async () => {
+
   }
 
   useEffect(() => {
@@ -54,6 +79,7 @@ const CheckInPage = () => {
     if (!accessToken) {
       navigate("/login");
     }
+    Utils.getSpreadsheetInfo(accessToken, spreadsheetId, navigate, setSpreadsheetName, setSheetsObj);
     updateCheckInList();
   }, []);
 
