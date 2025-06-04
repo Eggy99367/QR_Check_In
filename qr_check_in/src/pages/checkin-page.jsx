@@ -26,10 +26,6 @@ const CheckInPage = () => {
   const spreadsheetId = searchParams.get('spreadsheetId');
   const checkInListSheetTitle = import.meta.env.VITE_CHECKINLISTSHEETTITLE;
 
-  const onSuccessAudio = new Audio('../../public/success1.mp3');
-  const onWarningAudio = new Audio('../../public/warning.mp3');
-  const onErrorAudio = new Audio('../../public/error.mp3');
-
   const updateCheckInList = async () => {
     const data = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R1C1:R1048576C6`, "ROWS", navigate);
     
@@ -113,7 +109,7 @@ const CheckInPage = () => {
     var updatedData = await updateCheckInList(false);
     if (!(email in updatedData.values)){
       console.log(`Error: ${email} is not in the check-in list`);
-      onErrorAudio.play();
+      document.getElementById("errorAudio").play();
       return false;
     }
     const curTime = Utils.getTime();
@@ -127,7 +123,7 @@ const CheckInPage = () => {
       Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle,
         `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
         "ROWS", [updateRowData], navigate);
-      onWarningAudio.play();
+      document.getElementById("warningAudio").play();
       return false;
     }
     updatedData = modifyCheckInData(updatedData, email, {"Check-In": curTime, "Last Seen": curTime});
@@ -137,7 +133,7 @@ const CheckInPage = () => {
     Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle,
                           `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
                           "ROWS", [updateRowData], navigate);
-    onSuccessAudio.play();
+    document.getElementById("successAudio").play();
     return true;
   }
 
@@ -192,6 +188,9 @@ const CheckInPage = () => {
 
   return (
     <div className="pageContainer">
+      <audio id="successAudio" src="../../public/success1.mp3" preload="auto"></audio>
+      <audio id="warningAudio" src="../../public/warning.mp3" preload="auto"></audio>
+      <audio id="errorAudio" src="../../public/error.mp3" preload="auto"></audio>
       <div className={styles.contentBox}>
         <h4>{spreadsheetName === "" ? "Loading..." : spreadsheetName}</h4>
         <h5>Total Registrations: {totalRegistrations} / Checked In: {checkedIn} / Not Checked In: {notCheckedIn}</h5>
