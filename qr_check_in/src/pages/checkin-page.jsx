@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import Dropdown from '../components/dropdown';
 import styles from './checkin-page.module.css';
 import Cookies from "js-cookie";
@@ -42,6 +43,7 @@ const CheckInPage = () => {
     }
       
     
+    var totalRegistrationsCount = 0;
     var checkedInCount = 0;
     const dataLen = data.length;
     var tempCheckInData = {}
@@ -56,6 +58,11 @@ const CheckInPage = () => {
         }
         if (colTitle === "Email"){
           rowEmail = row[colIndex];
+          if(rowEmail != undefined && rowEmail != ""){
+            totalRegistrationsCount++;
+          }else{
+            break;
+          }
         }
         rowData[colTitle] = row[colIndex];
         if(colTitle === "Check-In" && row[tempColObj[colTitle]] != undefined && row[tempColObj[colTitle]] != ""){
@@ -65,9 +72,9 @@ const CheckInPage = () => {
       tempCheckInData[rowEmail] = rowData;
     }
     
-    setTotalRegistrations(dataLen - 1);
+    setTotalRegistrations(totalRegistrationsCount);
     setCheckedIn(checkedInCount);
-    setNotCheckedIn(dataLen - checkedInCount - 1);
+    setNotCheckedIn(totalRegistrationsCount - checkedInCount);
     setCheckInData(tempCheckInData);
     
     console.log("Check In List Updated!");
@@ -108,32 +115,31 @@ const CheckInPage = () => {
   const handleCheckIn = async (email) => {
     var updatedData = await updateCheckInList(false);
     if (!(email in updatedData.values)){
-      console.log(`Error: ${email} is not in the check-in list`);
       document.getElementById("errorAudio").play();
+      toast.error(`${rowData["Name"]} is not in the check-in list!`);
       return false;
     }
     const curTime = Utils.getTime();
     if (alreadyCheckedIn(updatedData, email)){
-      console.log(`Warning: ${email} has already checked in`)
       
       updatedData = modifyCheckInData(updatedData, email, {"Last Seen": curTime});
-      console.log(updatedData);
       const updateRowData = generateUpdateRow(updatedData, email);
       const rowData = updatedData.values[email];
       Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle,
         `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
         "ROWS", [updateRowData], navigate);
       document.getElementById("warningAudio").play();
+      toast.warning(`${rowData["Name"]} checked-in before!`);
       return false;
     }
     updatedData = modifyCheckInData(updatedData, email, {"Check-In": curTime, "Last Seen": curTime});
-    console.log(updatedData);
     const rowData = updatedData.values[email];
     const updateRowData = generateUpdateRow(updatedData, email);
     Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle,
                           `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
                           "ROWS", [updateRowData], navigate);
     document.getElementById("successAudio").play();
+    toast.success(`${rowData["Name"]} check-in successful!`);
     return true;
   }
 
@@ -173,7 +179,7 @@ const CheckInPage = () => {
       handleCheckIn(decodedText);
       setTimeout(() => {
         lastScanned.current = "";
-      }, 3000);
+      }, 5000);
     };
   
     scanner.render(
