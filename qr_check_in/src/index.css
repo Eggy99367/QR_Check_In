@@ -5,6 +5,7 @@
   --light-text: #6b7280;
   --background: #f3f4f6;
   --dark-background: #1f2937;
+  --secondary-dark-background: #575859;
   --dark-text: #ffffff;
   --section-bg: #ffffff;
   --disabled-color: #ccc;
@@ -156,6 +157,37 @@ div#reader__dashboard_section button {
 div#reader__header_message {
   border-radius: 5px !important;
 } 
+
+div#reader__dashboard_section_csr{
+  display: flex !important;
+  flex-direction: column;
+  gap: 5px;
+}
+
+div#reader__dashboard_section_csr select{
+  width: 100% !important;
+  height: 40px !important;
+  padding: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 5px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+div#reader__dashboard_section_csr span{
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  margin-right: 0 !important;
+}
+
+button#html5-qrcode-button-torch{
+  padding: 5px 10px !important;
+  background-color: var(--secondary-dark-background);
+  }
 
 div#reader img[src^="data:image/svg+xml;base64"][style*="top: 4px"][style*="right: 4px"] {
   display: none !important;

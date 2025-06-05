@@ -157,10 +157,10 @@ const CheckInPage = () => {
     // if (hasInitialized.current) return;
     // hasInitialized.current = true;
     const scanner = new Html5QrcodeScanner("reader", {
-      qrbox: window.innerWidth <= 768 ? 100 : 200,
-      fps: 10,
+      qrbox: window.innerWidth <= 768 ? 180 : 250,
+      fps: 20,
       aspectRatio: 1,
-      rememberLastUsedCamera: false,
+      rememberLastUsedCamera: true,
       supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
       showTorchButtonIfSupported: true,
 
