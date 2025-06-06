@@ -116,7 +116,7 @@ const CheckInPage = () => {
     var updatedData = await updateCheckInList(false);
     if (!(email in updatedData.values)){
       document.getElementById("errorAudio").play();
-      toast.error(`${rowData["Name"]} is not in the check-in list!`);
+      toast.error(`${email} is not in the check-in list!`);
       return false;
     }
     const curTime = Utils.getTime();
