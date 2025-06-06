@@ -142,7 +142,7 @@ const ManagePage = () => {
         ],
       }),
     });
-    await handleGetSpreadsheetInfo();
+    await Utils.getSpreadsheetInfo(accessToken, spreadsheetId, navigate, setSpreadsheetName, setsheetsObj);
     console.log("Sheet copied and renamed!");
   }
 
