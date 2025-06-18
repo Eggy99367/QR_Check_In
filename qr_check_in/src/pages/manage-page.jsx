@@ -40,52 +40,72 @@ const ManagePage = () => {
   const [columnsList, setColumnsList] = useState([]);
   const [checkInListUpdated, setCheckInListUpdated] = useState(-1);
   const [haveNotInvited, setHaveNotInvited] = useState(-1);
+  const [loading, setLoading] = useState(true);
+  const [loadingSpreadsheet, setLoadingSpreadsheet] = useState(false);
+  const [loadingCheckIn, setLoadingCheckIn] = useState(false);
+  const [loadingEmail, setLoadingEmail] = useState(false);
 
   const checkInListSheetTitle = import.meta.env.VITE_CHECKINLISTSHEETTITLE;
   const emailTemplateSheetTitle = import.meta.env.VITE_EMAILTEMPLATESHEETTITLE;
 
   const handleGetSpreadsheetsInfo = async () => {
-    const response = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and 'me' in writers&orderBy=modifiedTime desc`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and 'me' in writers&orderBy=modifiedTime desc`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      const data = await response.json();
+      Utils.checkTokenExpired(navigate, data);
+      var tempArray = [["EnterURL", "-----Enter a Google Spreadsheet URL-----"]];
+      for(const spreadsheetObj of Object.values(data.files)){
+        tempArray.push([spreadsheetObj.id, spreadsheetObj.name]);
       }
-    );
-    const data = await response.json();
-    Utils.checkTokenExpired(navigate, data);
-    var tempArray = [["EnterURL", "Enter a Google Spreadsheet URL"]];
-    for(const spreadsheetObj of Object.values(data.files)){
-      tempArray.push([spreadsheetObj.id, spreadsheetObj.name]);
+      setSpreadsheetsInfo(tempArray);
+    } catch (error) {
+      console.error("Error fetching spreadsheets:", error);
+    } finally {
+      setLoading(false);
     }
-    setSpreadsheetsInfo(tempArray);
   };
 
   // Get a Spreadsheet's Information
   const getSpreadsheetInfo = async (spreadsheetId) => {
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+    try {
+      setLoadingSpreadsheet(true);
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      const data = await response.json();
+      Utils.checkTokenExpired(navigate, data);
+      var tempsheetsObj = {};
+      for(const sheetInfo of data.sheets){
+          tempsheetsObj[sheetInfo.properties.title] = sheetInfo.properties.sheetId;
       }
-    );
-    const data = await response.json();
-    Utils.checkTokenExpired(navigate, data);
-    var tempsheetsObj = {};
-    for(const sheetInfo of data.sheets){
-        tempsheetsObj[sheetInfo.properties.title] = sheetInfo.properties.sheetId;
+      setSpreadsheetName(data.properties.title);
+      setsheetsObj(tempsheetsObj);
+    } catch (error) {
+      console.error("Error fetching spreadsheet info:", error);
+    } finally {
+      setLoadingSpreadsheet(false);
     }
-    setSpreadsheetName(data.properties.title);
-    setsheetsObj(tempsheetsObj);
   }
 
   const handleFileSelect = async (value) => {
     setFileDropdown(value);
     if(value == "EnterURL"){
       setSpreadsheetId("");
+      setSpreadsheetName("");
+      setsheetsObj({});
     }else{
       setSpreadsheetId(value);
       Utils.getSpreadsheetInfo(accessToken, value, navigate, setSpreadsheetName, setsheetsObj);
@@ -95,7 +115,7 @@ const ManagePage = () => {
   const handleEnterURL = async (e) => {
     const id = e.target.value.split("/d/")[1].split("/")[0]
     setSpreadsheetId(id);
-    Utils.getSpreadsheetInfo(accessToken, id, navigate, setSpreadsheetName, setsheetsObj);
+    await getSpreadsheetInfo(id);
   }
 
   // Copy a sheet from a template spreadsheet to the current spreadsheet
@@ -163,57 +183,69 @@ const ManagePage = () => {
     setColumnsList(sheetData[0]);
   }
 
+  // Handle sheet selection
+  const handleSheetSelect = (sheetTitle) => {
+    handleGetSheetInfo(sheetTitle);
+  }
+
   // Update the check-in list
   const handleUpdateCheckInList = async () => {
-    const emailColumnNumber = columnsList.indexOf(emailColumn) + 1;
-    const nameColumnNumber = columnsList.indexOf(nameColumn) + 1;
-    
-    var emails = (await Utils.getSheetData(accessToken, spreadsheetId, selectedSheetTitle, `R2C${emailColumnNumber}:R1048576C${emailColumnNumber}`, "COLUMNS", navigate));
-    if (emails.length > 0){emails = emails[0]}
-    var names = (await Utils.getSheetData(accessToken, spreadsheetId, selectedSheetTitle, `R2C${nameColumnNumber}:R1048576C${nameColumnNumber}`, "COLUMNS", navigate));
-    if (names.length > 0){names = names[0]}
+    try {
+      setLoadingCheckIn(true);
+      const emailColumnNumber = columnsList.indexOf(emailColumn) + 1;
+      const nameColumnNumber = columnsList.indexOf(nameColumn) + 1;
+      
+      var emails = (await Utils.getSheetData(accessToken, spreadsheetId, selectedSheetTitle, `R2C${emailColumnNumber}:R1048576C${emailColumnNumber}`, "COLUMNS", navigate));
+      if (emails.length > 0){emails = emails[0]}
+      var names = (await Utils.getSheetData(accessToken, spreadsheetId, selectedSheetTitle, `R2C${nameColumnNumber}:R1048576C${nameColumnNumber}`, "COLUMNS", navigate));
+      if (names.length > 0){names = names[0]}
 
 
 
-    const checkInList = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, "R1C1:R1048576C6", "ROWS", navigate);
-    var checkInListFirstEmptyRowNum = checkInList.length + 1;
-    var checkInListColumns = checkInList[0];
-    
-    var checkInListData = {};
-    var rowEmail = ""
-    var tempHaveNotInvited = 0;
-    for (const row of checkInList.slice(1)){
-      var dataObj = {};
-      for (let colIndex = 0; colIndex < row.length; colIndex++){
-        if(checkInListColumns[colIndex] === "Email"){
-          rowEmail = row[colIndex];
-        }else{
-          dataObj[checkInListColumns[colIndex]] = row[colIndex];
+      const checkInList = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, "R1C1:R1048576C6", "ROWS", navigate);
+      var checkInListFirstEmptyRowNum = checkInList.length + 1;
+      var checkInListColumns = checkInList[0];
+      
+      var checkInListData = {};
+      var rowEmail = ""
+      var tempHaveNotInvited = 0;
+      for (const row of checkInList.slice(1)){
+        var dataObj = {};
+        for (let colIndex = 0; colIndex < row.length; colIndex++){
+          if(checkInListColumns[colIndex] === "Email"){
+            rowEmail = row[colIndex];
+          }else{
+            dataObj[checkInListColumns[colIndex]] = row[colIndex];
+          }
+        }
+        checkInListData[rowEmail] = dataObj;
+        if(!("Verification Mail Sent" in dataObj) || dataObj["Verification Mail Sent"] == ""){tempHaveNotInvited++};
+      }
+
+      const checkInListEmailColumnNum = checkInListColumns.indexOf("Email") + 1;
+      const checkInListNameColumnNum = checkInListColumns.indexOf("Name") + 1;
+      var updateEmailValues = [];
+      var updateNameValues = [];
+      for (let responseIndex = 0; responseIndex < emails.length; responseIndex++){
+        if(!(emails[responseIndex] in checkInListData)){
+          // console.log(`adding ${emails[responseIndex]}`);
+          updateEmailValues.push(emails[responseIndex]);
+          updateNameValues.push(names[responseIndex]);
         }
       }
-      checkInListData[rowEmail] = dataObj;
-      if(!("Verification Mail Sent" in dataObj) || dataObj["Verification Mail Sent"] == ""){tempHaveNotInvited++};
-    }
-
-    const checkInListEmailColumnNum = checkInListColumns.indexOf("Email") + 1;
-    const checkInListNameColumnNum = checkInListColumns.indexOf("Name") + 1;
-    var updateEmailValues = [];
-    var updateNameValues = [];
-    for (let responseIndex = 0; responseIndex < emails.length; responseIndex++){
-      if(!(emails[responseIndex] in checkInListData)){
-        // console.log(`adding ${emails[responseIndex]}`);
-        updateEmailValues.push(emails[responseIndex]);
-        updateNameValues.push(names[responseIndex]);
+      if (updateEmailValues.length > 0){
+        Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListEmailColumnNum}:R${checkInListFirstEmptyRowNum + updateEmailValues.length}C${checkInListEmailColumnNum}`, "COLUMNS", [updateEmailValues], navigate);
+        Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListNameColumnNum}:R${checkInListFirstEmptyRowNum + updateNameValues.length}C${checkInListNameColumnNum}`, "COLUMNS", [updateNameValues], navigate);
       }
-    }
-    if (updateEmailValues.length > 0){
-      Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListEmailColumnNum}:R${checkInListFirstEmptyRowNum + updateEmailValues.length}C${checkInListEmailColumnNum}`, "COLUMNS", [updateEmailValues], navigate);
-      Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R${checkInListFirstEmptyRowNum}C${checkInListNameColumnNum}:R${checkInListFirstEmptyRowNum + updateNameValues.length}C${checkInListNameColumnNum}`, "COLUMNS", [updateNameValues], navigate);
-    }
-    setCheckInListUpdated(updateEmailValues.length);
-    setTimeout(() => {setCheckInListUpdated(-1)}, 3000);
+      setCheckInListUpdated(updateEmailValues.length);
+      setTimeout(() => {setCheckInListUpdated(-1)}, 3000);
 
-    setHaveNotInvited(tempHaveNotInvited + updateEmailValues.length);
+      setHaveNotInvited(tempHaveNotInvited + updateEmailValues.length);
+    } catch (error) {
+      console.error("Error updating check-in list:", error);
+    } finally {
+      setLoadingCheckIn(false);
+    }
   }
 
   const sendEmail = async (to, name, subject, message) => {
@@ -242,34 +274,41 @@ const ManagePage = () => {
   }
 
   const handelSendEmail = async (toAll) => {
-    const checkInList = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, "R1C1:R1048576C6", "ROWS", navigate);
-    if(checkInList.length == 0){
-      console.log("No data in check-in list");
-      return;
-    }
-    const emailColumn = checkInList[0].indexOf("Email");
-    const nameColumn = checkInList[0].indexOf("Name");
-    const sentColumn = checkInList[0].indexOf("Verification Mail Sent");
+    try {
+      setLoadingEmail(true);
+      const checkInList = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, "R1C1:R1048576C6", "ROWS", navigate);
+      if(checkInList.length == 0){
+        console.log("No data in check-in list");
+        return;
+      }
+      const emailColumn = checkInList[0].indexOf("Email");
+      const nameColumn = checkInList[0].indexOf("Name");
+      const sentColumn = checkInList[0].indexOf("Verification Mail Sent");
 
-    const emailTemplates = await Utils.getSheetData(accessToken, spreadsheetId, emailTemplateSheetTitle, `R2C1:R4C1`, 'COLUMNS', navigate);
-    const subject = emailTemplates[0][0];
-    const message = emailTemplates[0][2];
+      const emailTemplates = await Utils.getSheetData(accessToken, spreadsheetId, emailTemplateSheetTitle, `R2C1:R4C1`, 'COLUMNS', navigate);
+      const subject = emailTemplates[0][0];
+      const message = emailTemplates[0][2];
 
-    var sentUpdateValues = [];
-    for(let rowIndex = 1; rowIndex < checkInList.length; rowIndex++){
-      if(!toAll && checkInList[rowIndex].length > sentColumn && checkInList[rowIndex][sentColumn] != ""){
-        sentUpdateValues.push(checkInList[rowIndex][sentColumn]);
-      }else{
-        const response = await sendEmail(checkInList[rowIndex][emailColumn], checkInList[rowIndex][nameColumn], subject, message);
-        if(response.ok){
-          sentUpdateValues.push(Utils.getTime());
+      var sentUpdateValues = [];
+      for(let rowIndex = 1; rowIndex < checkInList.length; rowIndex++){
+        if(!toAll && checkInList[rowIndex].length > sentColumn && checkInList[rowIndex][sentColumn] != ""){
+          sentUpdateValues.push(checkInList[rowIndex][sentColumn]);
         }else{
-          console.log(response);
-          break;
+          const response = await sendEmail(checkInList[rowIndex][emailColumn], checkInList[rowIndex][nameColumn], subject, message);
+          if(response.ok){
+            sentUpdateValues.push(Utils.getTime());
+          }else{
+            console.log(response);
+            break;
+          }
         }
       }
+      Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R2C${sentColumn + 1}:R${sentUpdateValues.length + 1}C${sentColumn + 1}`, "COLUMNS", [sentUpdateValues], navigate);
+    } catch (error) {
+      console.error("Error sending emails:", error);
+    } finally {
+      setLoadingEmail(false);
     }
-    Utils.updateSheetData(accessToken, spreadsheetId, checkInListSheetTitle, `R2C${sentColumn + 1}:R${sentUpdateValues.length + 1}C${sentColumn + 1}`, "COLUMNS", [sentUpdateValues], navigate);
   }
     
   useEffect(() => {
@@ -281,48 +320,225 @@ const ManagePage = () => {
 
   return (
     <div className="pageContainer">
-        <div className={styles.contentBox}>
-            <div className={styles.slelctSheetDropdownContainer}>
-                <Dropdown options={spreadsheetsInfo} placeholder="Select a Sheet..." onSelect={(value) => {handleFileSelect(value)}}/>
-            </div>
-            {fileDropdown == "EnterURL" && <input type="text" placeholder="Enter URL Here..." onChange={(e) =>{handleEnterURL(e)} }/>}
-            <hr className={styles.divider}/>
-            <h4>{Object.keys(sheetsObj).length > 0 ? <a href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`} target="_blank">{spreadsheetName}</a> : "No Spreadsheet Found"}</h4>
-            <div className={styles.contentRow}>
-                <div className={styles.dropdownContainer}>
-                    <Dropdown options={Object.keys(sheetsObj)} placeholder="Select Form Response Sheet..." onSelect={(selectedSheetTitle) => {handleGetSheetInfo(selectedSheetTitle)}} disabled={Object.keys(sheetsObj).length === 0}/>
-                </div>
-                <button onClick={handleCreateCheckInSheet} id={styles.createSheetButton} disabled={Object.keys(sheetsObj).length === 0 || (!(Object.keys(sheetsObj).length === 0) && checkInListSheetTitle in sheetsObj && emailTemplateSheetTitle in sheetsObj)}>Create Check-In Sheet</button>
-            </div>
-            <div className={styles.contentRow}>
-                <h5 className={styles.contentColumnTitle}>Email Column:</h5>
-                <div className={styles.dropdownContainer}>
-                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {setEmailColumn(value)}}/>
-                </div>
-            </div>
-            <div className={styles.contentRow}>
-                <h5 className={styles.contentColumnTitle}>Name Column:</h5>
-                <div className={styles.dropdownContainer}>
-                    <Dropdown options={columnsList} placeholder="Select Column..." disabled={columnsList.length === 0} onSelect={(value) => {setNameColumn(value)}}/>
-                </div>
-            </div>
-            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj)} onClick={handleUpdateCheckInList}>Update Check-In List</button>
-            {checkInListUpdated >= 0 && <h4>Updated {checkInListUpdated} People</h4>}
-            {haveNotInvited >= 0 && <h4>Haven't Invited: {haveNotInvited} People</h4>}
-            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {handelSendEmail(false)}}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-send" viewBox="0 0 16 16">
-                <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
-              </svg>
-              Sent Invites to those who haven't been invited
-            </button>
-            <button disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj) || !(emailTemplateSheetTitle in sheetsObj)} onClick={() => {handelSendEmail(true)}}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-send" viewBox="0 0 16 16">
-                <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
-              </svg>
-              Send Invites to all
-            </button>
-            <button onClick={() => {navigate(`/checkin?spreadsheetId=${spreadsheetId}`)}} disabled={Object.keys(sheetsObj).length === 0 || !(checkInListSheetTitle in sheetsObj)}>Start Check-In</button>
+      <div className={styles.contentBox}>
+        <div className={styles.header}>
+          <h2>Manage Events</h2>
+          <p className={styles.subtitle}>Set up and manage your event check-in system</p>
         </div>
+
+        {/* Step 1: Select Spreadsheet */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h3>📋 Step 1: Select Spreadsheet</h3>
+            <p>Choose your event registration spreadsheet from Google Sheets</p>
+          </div>
+          
+          {loading ? (
+            <div className={styles.loading}>
+              <div className={styles.spinner}></div>
+              <p>Loading your spreadsheets...</p>
+            </div>
+          ) : (
+            <div className={styles.inputGroup}>
+              <label>Select from your spreadsheets:</label>
+              <Dropdown 
+                options={spreadsheetsInfo}
+                placeholder="-- Select a spreadsheet --"
+                onSelect={(value) => handleFileSelect(value)}
+              />
+              
+              {fileDropdown === "EnterURL" && (
+                <div className={styles.urlInput}>
+                  <label>Enter Google Sheets URL:</label>
+                  <input 
+                    type="text" 
+                    placeholder="https://docs.google.com/spreadsheets/d/..." 
+                    onChange={handleEnterURL}
+                    className={styles.textInput}
+                  />
+                  <p className={styles.hint}>
+                    💡 Paste the full URL of your Google Spreadsheet
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Step 2: Configure Event */}
+        {(spreadsheetId && !loading) && (
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h3>⚙️ Step 2: Configure Event</h3>
+              <p>Set up your check-in system configuration</p>
+            </div>
+
+            {loadingSpreadsheet ? (
+              <div className={styles.loading}>
+                <div className={styles.spinner}></div>
+                <p>Loading spreadsheet information...</p>
+              </div>
+            ) : (
+              <>
+                <div className={styles.subsection}>
+                  <h4>📊 Spreadsheet: {spreadsheetName}</h4>
+                  
+                  <div className={styles.inputGroup}>
+                    <label>Select the sheet with registration data:</label>
+                    <Dropdown 
+                      options={Object.keys(sheetsObj)}
+                      placeholder="-- Select a sheet --"
+                      onSelect={(sheetTitle) => handleSheetSelect(sheetTitle)}
+                    />
+                  </div>
+                </div>
+
+                {selectedSheetTitle && (
+                  <div className={styles.subsection}>
+                    <h4>📝 Column Mapping</h4>
+                    <div className={styles.columnMapping}>
+                      <div className={styles.inputGroup}>
+                        <label>Email column:</label>
+                        <Dropdown 
+                          options={columnsList}
+                          placeholder="-- Select email column --"
+                          onSelect={(value) => setEmailColumn(value)}
+                        />
+                      </div>
+                      
+                      <div className={styles.inputGroup}>
+                        <label>Name column:</label>
+                        <Dropdown 
+                          options={columnsList}
+                          placeholder="-- Select name column --"
+                          onSelect={(value) => setNameColumn(value)}
+                        />
+                      </div>
+                    </div>
+                    <p className={styles.hint}>
+                      💡 These columns will be used to identify attendees and send QR codes
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Step 3: Sync Data */}
+        {(emailColumn && nameColumn && !loading && !loadingSpreadsheet) && (
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h3>🔄 Step 3: Sync Attendee Data</h3>
+              <p>Update your check-in list with the latest registration data</p>
+            </div>
+
+            <div className={styles.actionSection}>
+              <button 
+                onClick={handleUpdateCheckInList} 
+                className={styles.primaryButton}
+                disabled={loadingCheckIn}
+              >
+                {loadingCheckIn ? (
+                  <>
+                    <div className={styles.buttonSpinner}></div>
+                    Syncing Data...
+                  </>
+                ) : (
+                  <>📊 Sync Attendee Data</>
+                )}
+              </button>
+              
+              {checkInListUpdated >= 0 && (
+                <div className={styles.status}>
+                  ✅ Added {checkInListUpdated} new attendees to check-in list
+                </div>
+              )}
+              
+              <p className={styles.hint}>
+                💡 This will add new registrations to your check-in system without affecting existing data
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Send QR Codes */}
+        {(haveNotInvited > 0 && !loading && !loadingSpreadsheet && !loadingCheckIn) && (
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h3>📧 Step 4: Send QR Codes</h3>
+              <p>Email QR codes to your attendees for check-in</p>
+            </div>
+
+            <div className={styles.actionSection}>
+              <div className={styles.emailOptions}>
+                <button 
+                  onClick={() => handelSendEmail(false)} 
+                  className={styles.primaryButton}
+                  disabled={loadingEmail}
+                >
+                  {loadingEmail ? (
+                    <>
+                      <div className={styles.buttonSpinner}></div>
+                      Sending Emails...
+                    </>
+                  ) : (
+                    <>📤 Send to New Attendees ({haveNotInvited})</>
+                  )}
+                </button>
+                
+                <button 
+                  onClick={() => handelSendEmail(true)} 
+                  className={styles.secondaryButton}
+                  disabled={loadingEmail}
+                >
+                  {loadingEmail ? (
+                    <>
+                      <div className={styles.buttonSpinner}></div>
+                      Sending Emails...
+                    </>
+                  ) : (
+                    <>📬 Resend to All Attendees</>
+                  )}
+                </button>
+              </div>
+              
+              <p className={styles.hint}>
+                💡 QR codes are unique to each attendee and contain their registration information
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Start Check-in */}
+        {(spreadsheetId && !loading && !loadingSpreadsheet) && (
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h3>🎯 Step 5: Start Check-In</h3>
+              <p>Navigate to the check-in station to begin scanning QR codes</p>
+            </div>
+
+            <div className={styles.actionSection}>
+              <button 
+                onClick={() => navigate(`/checkin?spreadsheetId=${spreadsheetId}`)} 
+                className={styles.primaryButton}
+              >
+                🚀 Go to Check-In Station
+              </button>
+              
+              <p className={styles.hint}>
+                💡 Use this on a tablet or phone at your event entrance for easy scanning
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className={styles.footer}>
+          <button onClick={() => navigate('/')} className={styles.backButton}>
+            ← Back to Home
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -197,10 +197,61 @@ const CheckInPage = () => {
       <audio id="successAudio" src="/success1.mp3" preload="auto"></audio>
       <audio id="warningAudio" src="/warning.mp3" preload="auto"></audio>
       <audio id="errorAudio" src="/error.mp3" preload="auto"></audio>
+      
       <div className={styles.contentBox}>
-        <h4>{spreadsheetName === "" ? "Loading..." : spreadsheetName}</h4>
-        <h5>Total Registrations: {totalRegistrations} / Checked In: {checkedIn} / Not Checked In: {notCheckedIn}</h5>
-        <div id="reader"></div>
+        <div className={styles.header}>
+          <h2>🎯 Check-In Station</h2>
+          <h3 className={styles.eventName}>
+            {spreadsheetName === "" ? "Loading event..." : spreadsheetName}
+          </h3>
+        </div>
+
+        <div className={styles.statsContainer}>
+          <div className={styles.statCard}>
+            <div className={styles.statNumber}>{totalRegistrations}</div>
+            <div className={styles.statLabel}>Total Registered</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statNumber}>{checkedIn}</div>
+            <div className={styles.statLabel}>Checked In</div>
+          </div>
+          <div className={styles.statCard}>
+            <div className={styles.statNumber}>{notCheckedIn}</div>
+            <div className={styles.statLabel}>Remaining</div>
+          </div>
+        </div>
+
+        <div className={styles.progressContainer}>
+          <div className={styles.progressBar}>
+            <div 
+              className={styles.progressFill} 
+              style={{
+                width: totalRegistrations > 0 
+                  ? `${(checkedIn / totalRegistrations) * 100}%` 
+                  : '0%'
+              }}
+            ></div>
+          </div>
+          <div className={styles.progressText}>
+            {totalRegistrations > 0 ? Math.round((checkedIn / totalRegistrations) * 100) : 0}% Attendance
+          </div>
+        </div>
+
+        <div className={styles.scannerContainer}>
+          <h4 className={styles.scannerTitle}>📱 Scan QR Code</h4>
+          <div className={styles.scannerWrapper}>
+            <div id="reader"></div>
+          </div>
+          <p className={styles.scannerHint}>
+            💡 Point the camera at a QR code to check in attendees
+          </p>
+        </div>
+
+        <div className={styles.footer}>
+          <button onClick={() => navigate('/select-event')} className={styles.backButton}>
+            ← Back to Event Selection
+          </button>
+        </div>
       </div>
     </div>
   );

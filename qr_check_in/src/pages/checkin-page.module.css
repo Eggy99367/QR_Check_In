@@ -3,21 +3,282 @@
     flex-direction: column;
     align-items: center;
     background-color: var(--section-bg);
-    padding: 3rem;
+    padding: 2rem;
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 600px;
+    max-width: 900px;
     text-align: center;
-    gap: 0.5rem;
+    gap: 2rem;
 }
 
-.contentRow{
-    display: flex;
-    flex-direction: row;
+.header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.header h2 {
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.eventName {
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.statsContainer {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
     width: 100%;
+    max-width: 450px;
+}
+
+.statCard {
+    background-color: var(--background);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.statCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+}
+
+.statCard:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.15);
+}
+
+.statNumber {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    display: block;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.statLabel {
+    color: var(--light-text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.progressContainer {
+    width: 100%;
+    max-width: 400px;
+    margin: 0.5rem 0 1.5rem 0;
+}
+
+.progressBar {
+    width: 100%;
+    height: 8px;
+    background-color: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 6px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.progressFill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.progressText {
+    color: var(--text-color);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.scannerContainer {
+    width: 100%;
+    max-width: 500px;
+    margin: 1rem 0;
+}
+
+.scannerTitle {
+    color: var(--text-color);
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.scannerWrapper {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.15);
+    border: 3px solid var(--primary-color);
+    background-color: var(--background);
+    display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 40px;
-    gap: 1rem;
+    min-height: 400px;
+}
+
+.scannerWrapper #reader {
+    border: none !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    text-align: center !important;
+}
+
+.scannerWrapper #reader > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+.scannerWrapper #reader button {
+    margin: 0 auto !important;
+    display: block !important;
+}
+
+.scannerHint {
+    color: var(--light-text);
+    font-size: 0.95rem;
+    font-style: italic;
+    margin-top: 1rem;
+    margin-bottom: 0;
+}
+
+.footer {
+    width: 100%;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--background);
+}
+
+.backButton {
+    background-color: var(--background);
+    color: var(--text-color);
+    border: 2px solid var(--light-text);
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+}
+
+.backButton:hover {
+    background-color: var(--light-text);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+    .contentBox {
+        padding: 1.5rem;
+        gap: 1.5rem;
+        margin: 0 1rem;
+    }
+
+    .header h2 {
+        font-size: 1.8rem;
+    }
+
+    .eventName {
+        font-size: 1.2rem;
+    }
+
+    .statsContainer {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        max-width: 280px;
+    }
+
+    .statCard {
+        padding: 0.75rem;
+    }
+
+    .statNumber {
+        font-size: 1.5rem;
+    }
+
+    .statLabel {
+        font-size: 0.7rem;
+    }
+
+    .progressContainer {
+        max-width: 300px;
+    }
+
+    .scannerContainer {
+        max-width: 100%;
+    }
+
+    .scannerWrapper {
+        border-width: 2px;
+        min-height: 350px;
+    }
+}
+
+@media (max-width: 480px) {
+    .statsContainer {
+        grid-template-columns: 1fr;
+        max-width: 250px;
+    }
+    
+    .statCard {
+        padding: 0.5rem;
+    }
+    
+    .statNumber {
+        font-size: 1.3rem;
+    }
+
+    .statLabel {
+        font-size: 0.65rem;
+    }
+
+    .scannerWrapper {
+        min-height: 300px;
+    }
 }

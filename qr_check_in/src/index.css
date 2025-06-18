@@ -118,9 +118,9 @@ a:hover {
   text-decoration: underline;
 }
 
-a:visited {
+/* a:visited {
   color: var(--primary-color);
-}
+} */
 
 .dropdown {
   width: 100%;

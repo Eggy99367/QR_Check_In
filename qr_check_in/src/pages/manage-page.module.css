@@ -7,9 +7,207 @@
     border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 800px;
+    max-width: 900px;
+    text-align: left;
+    gap: 1rem;
+}
+
+.header {
     text-align: center;
+    margin-bottom: 2rem;
+    width: 100%;
+}
+
+.header h2 {
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.subtitle {
+    color: var(--light-text);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.section {
+    width: 100%;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: var(--background);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.section h3 {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
+}
+
+.subsection {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background-color: var(--section-bg);
+    border-radius: 6px;
+}
+
+.subsection h4 {
+    color: var(--text-color);
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.description {
+    color: var(--text-color);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.hint {
+    color: var(--light-text);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+
+.spreadsheetLink {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.spreadsheetLink:hover {
+    text-decoration: underline;
+}
+
+.urlInput {
+    margin-top: 1rem;
+}
+
+.urlInput input {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.noSpreadsheet {
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--background);
+    border-radius: 8px;
+    width: 100%;
+}
+
+.noSpreadsheet h4 {
+    color: var(--light-text);
+    margin-bottom: 0.5rem;
+}
+
+.noSpreadsheet p {
+    color: var(--light-text);
+    margin: 0;
+}
+
+.statusMessage {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 6px;
+    width: 100%;
+}
+
+.statusMessage .success {
+    background-color: #f0f9ff;
+    color: #0369a1;
+    border: 1px solid #7dd3fc;
+    margin: 0;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.statusMessage .info {
+    background-color: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fcd34d;
+    margin: 0;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.buttonGroup {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.actionButton,
+.primaryEmailButton,
+.secondaryEmailButton,
+.startCheckinButton {
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: var(--transition);
+    cursor: pointer;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    flex: 1;
+}
+
+.actionButton {
+    background-color: var(--primary-color);
+    color: white;
+    width: 100%;
+}
+
+.actionButton:hover:not(:disabled) {
+    background-color: var(--secondary-color);
+    transform: translateY(-1px);
+}
+
+.primaryEmailButton {
+    background-color: #10b981;
+    color: white;
+}
+
+.primaryEmailButton:hover:not(:disabled) {
+    background-color: #059669;
+    transform: translateY(-1px);
+}
+
+.secondaryEmailButton {
+    background-color: #6366f1;
+    color: white;
+}
+
+.secondaryEmailButton:hover:not(:disabled) {
+    background-color: #4f46e5;
+    transform: translateY(-1px);
+}
+
+.startCheckinButton {
+    background-color: var(--primary-color);
+    color: white;
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 16px 24px;
+}
+
+.startCheckinButton:hover:not(:disabled) {
+    background-color: var(--secondary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(7, 81, 240, 0.3);
 }
 
 .contentRow{
@@ -20,17 +218,21 @@
     align-items: center;
     min-height: 40px;
     gap: 1rem;
+    margin: 0.75rem 0;
 }
 
 .divider{
     width: 100%;
-    height: 1px;
-    background-color: var(--light-text);
-    margin: 10px 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--light-text), transparent);
+    margin: 2rem 0;
+    border: none;
 }
 
 .contentColumnTitle{
     flex: 2;
+    font-weight: 600;
+    color: var(--text-color);
 }
 
 .dropdownContainer{
@@ -45,9 +247,248 @@
     flex: 4;
     width: 100%;
     height: 40px;
+    font-weight: 600;
 }
 
 .contentBox button{
     width: 100%;
     height: 40px;
+}
+
+@media (max-width: 768px) {
+    .contentBox {
+        padding: 2rem 1.5rem;
+        max-width: 100%;
+        margin: 0 1rem;
+    }
+
+    .section {
+        padding: 1rem;
+    }
+
+    .columnMapping {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .emailOptions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .primaryButton,
+    .secondaryButton {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .contentRow {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .contentColumnTitle {
+        flex: none;
+        text-align: left;
+    }
+
+    .dropdownContainer {
+        flex: none;
+        width: 100%;
+    }
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--background);
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.buttonSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading p {
+  color: var(--light-text);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.sectionHeader {
+  margin-bottom: 1.5rem;
+}
+
+.sectionHeader h3 {
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sectionHeader p {
+  color: var(--light-text);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.inputGroup {
+  margin-bottom: 1rem;
+}
+
+.inputGroup label {
+  display: block;
+  color: var(--text-color);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.textInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--light-text);
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: var(--transition);
+  background-color: white;
+}
+
+.textInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(7, 81, 240, 0.1);
+}
+
+.urlInput {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--section-bg);
+  border-radius: 6px;
+  border: 1px solid var(--light-text);
+}
+
+.columnMapping {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.actionSection {
+  margin-top: 1rem;
+}
+
+.emailOptions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: var(--transition);
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  flex: 1;
+  min-height: 48px;
+}
+
+.primaryButton {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background-color: var(--secondary-color);
+  transform: translateY(-1px);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.secondaryButton {
+  background-color: #6366f1;
+  color: white;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background-color: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.status {
+  background-color: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #7dd3fc;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin: 1rem 0;
+  font-weight: 600;
+}
+
+.footer {
+  width: 100%;
+  padding-top: 2rem;
+  border-top: 2px solid var(--background);
+  text-align: center;
+}
+
+.backButton {
+  background-color: var(--background);
+  color: var(--text-color);
+  border: 2px solid var(--light-text);
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.backButton:hover {
+  background-color: var(--light-text);
+  color: white;
+  transform: translateY(-1px);
 }
