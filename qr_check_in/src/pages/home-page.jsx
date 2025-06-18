@@ -58,12 +58,13 @@ const HomePage = () => {
         </div>
 
         <div className={styles.footer}>
-          <button 
+          <a 
             onClick={() => navigate('/privacy')} 
             className={styles.footerLink}
+            style={{ cursor: 'pointer' }}
           >
             Privacy Policy
-          </button>
+          </a>
           <span className={styles.separator}>•</span>
           <a href="mailto:support@qrcheckin.com" className={styles.footerLink}>
             Contact Support

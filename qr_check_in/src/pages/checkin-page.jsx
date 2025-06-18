@@ -132,6 +132,11 @@ const CheckInPage = () => {
       toast.warning(`${rowData["Name"]} checked-in before!`);
       return false;
     }
+    
+    // Update local stats immediately for successful check-in
+    setCheckedIn(prevCheckedIn => prevCheckedIn + 1);
+    setNotCheckedIn(prevNotCheckedIn => prevNotCheckedIn - 1);
+    
     updatedData = modifyCheckInData(updatedData, email, {"Check-In": curTime, "Last Seen": curTime});
     const rowData = updatedData.values[email];
     const updateRowData = generateUpdateRow(updatedData, email);
