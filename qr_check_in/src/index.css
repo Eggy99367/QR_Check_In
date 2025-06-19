@@ -24,6 +24,17 @@ body{
   background-color: var(--background);
 }
 
+/* Global Page Container */
+.pageContainer {
+  width: 100%;
+  min-height: 100vh;
+  padding: 80px 20px 20px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
 nav {
   position: fixed;
   width: 100%;
@@ -194,7 +205,77 @@ div#reader img[src^="data:image/svg+xml;base64"][style*="top: 4px"][style*="righ
 }
 
 @media (max-width: 768px) {
+  .pageContainer {
+    padding: 70px 15px 15px 15px;
+  }
+
+  /* Enhanced typography for mobile */
+  h1 {
+    font-size: 2.2rem;
+  }
+
+  h2 {
+    font-size: 1.8rem;
+  }
+
+  h3 {
+    font-size: 1.3rem;
+  }
+
+  /* Touch-friendly buttons */
+  button {
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+  }
+
+  /* Prevent zoom on iOS */
+  input, select, textarea {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  input {
+    padding: 12px;
+  }
+
+  .dropdown {
+    font-size: 16px;
+    min-height: 44px;
+    padding: 12px;
+  }
+
   div#reader {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .pageContainer {
+    padding: 60px 10px 10px 10px;
+  }
+
+  /* Further scale typography for small phones */
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+  }
+
+  /* Compact buttons for small screens */
+  button {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    min-height: 48px;
+  }
+
+  input, select, textarea {
+    padding: 10px;
   }
 }

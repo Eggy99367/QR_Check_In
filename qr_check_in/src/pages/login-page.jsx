@@ -37,14 +37,15 @@ const LoginPage = () => {
 
   return (
     <div className="pageContainer">
-      <div className={styles.loginBox}>
-        <h1 className={styles.title}>Welcome to QR Check-In</h1>
-        <p className={styles.subtitle}>Sign in to continue</p>
-        
-        <button
-          onClick={handleGoogleLogin}
-          className={styles.googleButton}
-        >
+      <div className={styles.loginContainer}>
+        <div className={styles.loginBox}>
+          <h1 className={styles.title}>Welcome to QR Check-In</h1>
+          <p className={styles.subtitle}>Sign in to continue</p>
+          
+          <button
+            onClick={handleGoogleLogin}
+            className={styles.googleButton}
+          >
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 326667 333333"
@@ -73,8 +74,9 @@ const LoginPage = () => {
                     fill="#ea4335"
                 />
             </svg>
-          Sign in with Google
-        </button>
+            Sign in with Google
+          </button>
+        </div>
       </div>
     </div>
   );

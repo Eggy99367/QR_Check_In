@@ -211,6 +211,16 @@ const CheckInPage = () => {
           </h3>
         </div>
 
+        <div className={styles.scannerContainer}>
+          <h4 className={styles.scannerTitle}>📱 Scan QR Code</h4>
+          <div className={styles.scannerWrapper}>
+            <div id="reader"></div>
+          </div>
+          <p className={styles.scannerHint}>
+            💡 Point the camera at a QR code to check in attendees
+          </p>
+        </div>
+
         <div className={styles.statsContainer}>
           <div className={styles.statCard}>
             <div className={styles.statNumber}>{totalRegistrations}</div>
@@ -240,16 +250,6 @@ const CheckInPage = () => {
           <div className={styles.progressText}>
             {totalRegistrations > 0 ? Math.round((checkedIn / totalRegistrations) * 100) : 0}% Attendance
           </div>
-        </div>
-
-        <div className={styles.scannerContainer}>
-          <h4 className={styles.scannerTitle}>📱 Scan QR Code</h4>
-          <div className={styles.scannerWrapper}>
-            <div id="reader"></div>
-          </div>
-          <p className={styles.scannerHint}>
-            💡 Point the camera at a QR code to check in attendees
-          </p>
         </div>
 
         <div className={styles.footer}>

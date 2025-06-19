@@ -262,8 +262,34 @@
         margin: 0 1rem;
     }
 
+    .header h2 {
+        font-size: 1.6rem;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+    }
+
     .section {
         padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .section h3 {
+        font-size: 1.2rem;
+    }
+
+    .subsection {
+        margin: 1rem 0;
+        padding: 0.75rem;
+    }
+
+    .description {
+        font-size: 0.9rem;
+    }
+
+    .hint {
+        font-size: 0.85rem;
     }
 
     .columnMapping {
@@ -277,9 +303,13 @@
     }
 
     .primaryButton,
-    .secondaryButton {
+    .secondaryButton,
+    .primaryEmailButton,
+    .secondaryEmailButton {
         width: 100%;
         justify-content: center;
+        min-height: 44px;
+        font-size: 0.95rem;
     }
 
     .contentRow {
@@ -291,11 +321,138 @@
     .contentColumnTitle {
         flex: none;
         text-align: left;
+        font-size: 0.95rem;
     }
 
     .dropdownContainer {
         flex: none;
         width: 100%;
+    }
+
+    .emailEditor {
+        padding: 1rem;
+    }
+
+    .emailEditorActions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .emailEditorActions button {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .testEmailSection {
+        margin-top: 1.5rem;
+        padding: 1rem;
+    }
+
+    .textInput {
+        font-size: 16px;
+        padding: 12px;
+    }
+
+    .textArea {
+        font-size: 16px;
+        padding: 12px;
+        min-height: 100px;
+    }
+
+    .buttonGroup {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .startCheckinButton {
+        font-size: 1rem;
+        padding: 14px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .contentBox {
+        padding: 1.5rem 1rem;
+        margin: 0 0.5rem;
+    }
+
+    .header h2 {
+        font-size: 1.4rem;
+    }
+
+    .subtitle {
+        font-size: 0.95rem;
+    }
+
+    .section {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .section h3 {
+        font-size: 1.1rem;
+    }
+
+    .subsection {
+        margin: 0.75rem 0;
+        padding: 0.5rem;
+    }
+
+    .subsection h4 {
+        font-size: 1rem;
+    }
+
+    .description {
+        font-size: 0.85rem;
+    }
+
+    .hint {
+        font-size: 0.8rem;
+    }
+
+    .contentColumnTitle {
+        font-size: 0.9rem;
+    }
+
+    .primaryButton,
+    .secondaryButton,
+    .primaryEmailButton,
+    .secondaryEmailButton {
+        min-height: 48px;
+        font-size: 0.9rem;
+    }
+
+    .emailEditor {
+        padding: 0.75rem;
+    }
+
+    .testEmailSection {
+        padding: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .testEmailSection h5 {
+        font-size: 0.95rem;
+    }
+
+    .textInput,
+    .textArea {
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    .textArea {
+        min-height: 80px;
+    }
+
+    .startCheckinButton {
+        font-size: 0.95rem;
+        padding: 12px 16px;
+    }
+
+    .backButton {
+        font-size: 0.9rem;
+        padding: 10px 16px;
     }
 }
 
