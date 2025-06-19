@@ -1,74 +1,70 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useTranslation } from '../hooks/useTranslation';
 import styles from './home-page.module.css';
 
 const HomePage = () => {
-  const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const handlePrivacyClick = () => {
+    window.open('/privacy', '_blank');
+  };
+
+  const handleSupportClick = () => {
+    window.open('mailto:support@example.com', '_blank');
+  };
 
   return (
     <div className="pageContainer">
       <div className={styles.contentBox}>
         <div className={styles.header}>
-          <h1>QR Check-In System</h1>
-          <p className={styles.subtitle}>Streamline your event check-ins with QR codes</p>
+          <h1>{t('home.title')}</h1>
+          <p className={styles.subtitle}>{t('home.subtitle')}</p>
         </div>
 
         <div className={styles.features}>
           <div className={styles.feature}>
             <div className={styles.featureIcon}>📊</div>
-            <h3>Manage Spreadsheets</h3>
-            <p>Connect your Google Sheets to automatically sync registration data and track check-ins in real-time.</p>
+            <h3>{t('home.features.manage.title')}</h3>
+            <p>{t('home.features.manage.description')}</p>
           </div>
-
           <div className={styles.feature}>
             <div className={styles.featureIcon}>📧</div>
-            <h3>Email QR Codes</h3>
-            <p>Automatically send personalized QR codes to registered attendees via email for seamless check-in.</p>
+            <h3>{t('home.features.email.title')}</h3>
+            <p>{t('home.features.email.description')}</p>
           </div>
-
           <div className={styles.feature}>
             <div className={styles.featureIcon}>📱</div>
-            <h3>Quick Scanning</h3>
-            <p>Use your device's camera to scan QR codes and instantly check in attendees with audio feedback.</p>
+            <h3>{t('home.features.scan.title')}</h3>
+            <p>{t('home.features.scan.description')}</p>
           </div>
-
           <div className={styles.feature}>
             <div className={styles.featureIcon}>📈</div>
-            <h3>Real-time Analytics</h3>
-            <p>Monitor check-in statistics, track attendance, and get insights into your event's success.</p>
+            <h3>{t('home.features.analytics.title')}</h3>
+            <p>{t('home.features.analytics.description')}</p>
           </div>
         </div>
 
         <div className={styles.cta}>
-          <h2>Get Started</h2>
-          <p>Ready to streamline your event check-ins?</p>
+          <h2>{t('home.cta.title')}</h2>
+          <p>{t('home.cta.description')}</p>
           <div className={styles.buttonGroup}>
-            <button 
-              onClick={() => navigate('/manage')} 
-              className={styles.primaryButton}
-            >
-              Manage Events
-            </button>
-            <button 
-              onClick={() => navigate('/select-event')} 
-              className={styles.secondaryButton}
-            >
-              Check-In Station
-            </button>
+            <Link to="/manage" className={styles.primaryButton}>
+              {t('home.cta.manageButton')}
+            </Link>
+            <Link to="/select-event" className={styles.secondaryButton}>
+              {t('home.cta.checkinButton')}
+            </Link>
           </div>
         </div>
 
         <div className={styles.footer}>
-          <a 
-            onClick={() => navigate('/privacy')} 
-            className={styles.footerLink}
-            style={{ cursor: 'pointer' }}
-          >
-            Privacy Policy
-          </a>
+          <button onClick={handlePrivacyClick} className={styles.footerLink}>
+            {t('home.footer.privacy')}
+          </button>
           <span className={styles.separator}>•</span>
-          <a href="mailto:support@qrcheckin.com" className={styles.footerLink}>
-            Contact Support
-          </a>
+          <button onClick={handleSupportClick} className={styles.footerLink}>
+            {t('home.footer.support')}
+          </button>
         </div>
       </div>
     </div>

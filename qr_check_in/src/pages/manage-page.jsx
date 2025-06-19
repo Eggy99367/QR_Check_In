@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../hooks/useTranslation';
 import Dropdown from '../components/dropdown';
 import styles from './manage-page.module.css';
 import Cookies from "js-cookie";
@@ -68,6 +69,7 @@ async function createEmail(to, name, subject, message) {
 
 const ManagePage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const accessToken = Cookies.get('access_token');
   const [spreadsheetsInfo, setSpreadsheetsInfo] = useState([]);
   const [fileDropdown, setFileDropdown] = useState("");
@@ -108,7 +110,7 @@ const ManagePage = () => {
       );
       const data = await response.json();
       Utils.checkTokenExpired(navigate, data);
-      var tempArray = [["EnterURL", "-----Enter a Google Spreadsheet URL-----"]];
+      var tempArray = [["EnterURL", t('manage.steps.selectSpreadsheet.urlDropdownOption')]];
       for(const spreadsheetObj of Object.values(data.files)){
         tempArray.push([spreadsheetObj.id, spreadsheetObj.name]);
       }
@@ -481,42 +483,42 @@ const ManagePage = () => {
     <div className="pageContainer">
       <div className={styles.contentBox}>
         <div className={styles.header}>
-          <h2>Manage Events</h2>
-          <p className={styles.subtitle}>Set up and manage your event check-in system</p>
+          <h2>{t('manage.title')}</h2>
+          <p className={styles.subtitle}>{t('manage.subtitle')}</p>
         </div>
 
         {/* Step 1: Select Spreadsheet */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h3>📋 Step 1: Select Spreadsheet</h3>
-            <p>Choose your event registration spreadsheet from Google Sheets</p>
+            <h3>{t('manage.steps.selectSpreadsheet.title')}</h3>
+            <p>{t('manage.steps.selectSpreadsheet.description')}</p>
           </div>
           
           {loading ? (
             <div className={styles.loading}>
               <div className={styles.spinner}></div>
-              <p>Loading your spreadsheets...</p>
+              <p>{t('manage.loading')}</p>
             </div>
           ) : (
             <div className={styles.inputGroup}>
-              <label>Select from your spreadsheets:</label>
+              <label>{t('manage.steps.selectSpreadsheet.selectLabel')}</label>
               <Dropdown 
                 options={spreadsheetsInfo}
-                placeholder="-- Select a spreadsheet --"
+                placeholder={t('manage.steps.selectSpreadsheet.placeholder')}
                 onSelect={(value) => handleFileSelect(value)}
               />
               
               {fileDropdown === "EnterURL" && (
                 <div className={styles.urlInput}>
-                  <label>Enter Google Sheets URL:</label>
+                  <label>{t('manage.steps.selectSpreadsheet.urlLabel')}</label>
                   <input 
                     type="text" 
-                    placeholder="https://docs.google.com/spreadsheets/d/..." 
+                    placeholder={t('manage.steps.selectSpreadsheet.urlPlaceholder')}
                     onChange={handleEnterURL}
                     className={styles.textInput}
                   />
                   <p className={styles.hint}>
-                    💡 Paste the full URL of your Google Spreadsheet
+                    {t('manage.steps.selectSpreadsheet.urlHint')}
                   </p>
                 </div>
               )}
@@ -528,14 +530,14 @@ const ManagePage = () => {
         {(spreadsheetId && !loading) && (
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <h3>⚙️ Step 2: Configure Event</h3>
-              <p>Set up your check-in system configuration</p>
+              <h3>{t('manage.steps.configureEvent.title')}</h3>
+              <p>{t('manage.steps.configureEvent.description')}</p>
             </div>
 
             {loadingSpreadsheet ? (
               <div className={styles.loading}>
                 <div className={styles.spinner}></div>
-                <p>Loading spreadsheet information...</p>
+                <p>{t('common.loading')}</p>
               </div>
             ) : (
               <>
@@ -543,19 +545,19 @@ const ManagePage = () => {
                   <h4>📊 Spreadsheet: {spreadsheetName}</h4>
                   
                   <div className={styles.inputGroup}>
-                    <label>Select the sheet with registration data:</label>
+                    <label>{t('manage.steps.configureEvent.selectSheetLabel')}</label>
                     <Dropdown 
                       options={Object.keys(sheetsObj)}
-                      placeholder="-- Select a sheet --"
+                      placeholder={t('manage.steps.configureEvent.sheetPlaceholder')}
                       onSelect={(sheetTitle) => handleSheetSelect(sheetTitle)}
                     />
                   </div>
                 </div>
 
                 <div className={styles.subsection}>
-                  <h4>🛠️ Setup Check-In System</h4>
+                  <h4>{t('manage.steps.configureEvent.setupTitle')}</h4>
                   <p className={styles.description}>
-                    Create the necessary sheets for your check-in system if they don't already exist.
+                    {t('manage.steps.configureEvent.setupDescription')}
                   </p>
                   <div className={styles.actionSection}>
                     <button 
@@ -566,43 +568,43 @@ const ManagePage = () => {
                       {loadingSheetCreation ? (
                         <>
                           <div className={styles.buttonSpinner}></div>
-                          Creating Sheets...
+                          {t('manage.steps.configureEvent.creatingButton')}
                         </>
                       ) : (checkInListSheetTitle in sheetsObj && emailTemplateSheetTitle in sheetsObj) ? 
-                        "✅ Check-In Sheets Ready" : 
-                        "📋 Create Check-In Sheets"
+                        t('manage.steps.configureEvent.readyButton') : 
+                        t('manage.steps.configureEvent.createButton')
                       }
                     </button>
                     <p className={styles.hint}>
-                      💡 This creates a "Check-In List" sheet and "Email Template" sheet in your spreadsheet
+                      {t('manage.steps.configureEvent.setupHint')}
                     </p>
                   </div>
                 </div>
 
                 {selectedSheetTitle && (checkInListSheetTitle in sheetsObj) && (
                   <div className={styles.subsection}>
-                    <h4>📝 Column Mapping</h4>
+                    <h4>{t('manage.steps.configureEvent.columnMapping')}</h4>
                     <div className={styles.columnMapping}>
                       <div className={styles.inputGroup}>
-                        <label>Email column:</label>
+                        <label>{t('manage.steps.configureEvent.emailColumn')}</label>
                         <Dropdown 
                           options={columnsList}
-                          placeholder="-- Select email column --"
+                          placeholder={t('manage.steps.configureEvent.emailColumnPlaceholder')}
                           onSelect={(value) => setEmailColumn(value)}
                         />
                       </div>
                       
                       <div className={styles.inputGroup}>
-                        <label>Name column:</label>
+                        <label>{t('manage.steps.configureEvent.nameColumn')}</label>
                         <Dropdown 
                           options={columnsList}
-                          placeholder="-- Select name column --"
+                          placeholder={t('manage.steps.configureEvent.nameColumnPlaceholder')}
                           onSelect={(value) => setNameColumn(value)}
                         />
                       </div>
                     </div>
                     <p className={styles.hint}>
-                      💡 These columns will be used to identify attendees and send QR codes
+                      {t('manage.steps.configureEvent.columnHint')}
                     </p>
                   </div>
                 )}
@@ -615,8 +617,8 @@ const ManagePage = () => {
         {(emailColumn && nameColumn && !loading && !loadingSpreadsheet && (checkInListSheetTitle in sheetsObj)) && (
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <h3>🔄 Step 3: Sync Attendee Data</h3>
-              <p>Update your check-in list with the latest registration data</p>
+              <h3>{t('manage.steps.syncData.title')}</h3>
+              <p>{t('manage.steps.syncData.description')}</p>
             </div>
 
             <div className={styles.actionSection}>
@@ -628,21 +630,21 @@ const ManagePage = () => {
                 {loadingCheckIn ? (
                   <>
                     <div className={styles.buttonSpinner}></div>
-                    Syncing Data...
+                    {t('manage.steps.syncData.syncingButton')}
                   </>
                 ) : (
-                  <>📊 Sync Attendee Data</>
+                  <>{t('manage.steps.syncData.syncButton')}</>
                 )}
               </button>
               
               {checkInListUpdated >= 0 && (
                 <div className={styles.status}>
-                  ✅ Added {checkInListUpdated} new attendees to check-in list
+                  {t('manage.steps.syncData.syncSuccess', { count: checkInListUpdated })}
                 </div>
               )}
               
               <p className={styles.hint}>
-                💡 This will add new registrations to your check-in system without affecting existing data
+                {t('manage.steps.syncData.syncHint')}
               </p>
             </div>
           </div>
@@ -652,12 +654,12 @@ const ManagePage = () => {
         {(!loading && !loadingSpreadsheet && !loadingCheckIn && (emailTemplateSheetTitle in sheetsObj)) && (
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <h3>📧 Step 4: Send QR Codes</h3>
-              <p>Email QR codes to your attendees for check-in</p>
+              <h3>{t('manage.steps.sendQR.title')}</h3>
+              <p>{t('manage.steps.sendQR.description')}</p>
             </div>
 
             <div className={styles.subsection}>
-              <h4>✏️ Email Template</h4>
+              <h4>{t('manage.steps.sendQR.emailTemplate')}</h4>
               <div className={styles.actionSection}>
                 <button 
                   onClick={handleEditEmailTemplate}
@@ -667,51 +669,53 @@ const ManagePage = () => {
                   {loadingTemplate ? (
                     <>
                       <div className={styles.buttonSpinner}></div>
-                      Loading Template...
+                      {t('manage.steps.sendQR.loadingTemplate')}
                     </>
+                  ) : showEmailEditor ? (
+                    <>{t('manage.steps.sendQR.hideEditor')}</>
                   ) : (
-                    <>📝 Edit Email Template</>
+                    <>{t('manage.steps.sendQR.showEditor')}</>
                   )}
                 </button>
                 <p className={styles.hint}>
-                  💡 Customize the subject and message for your QR code emails. Use {`{{Name}}`} and {`{{QRcode}}`} as placeholders. Press Enter for line breaks - no HTML needed!
+                  {t('manage.steps.sendQR.editorHint')}
                 </p>
               </div>
 
               {showEmailEditor && (
                 <div className={styles.emailEditor}>
                   <div className={styles.inputGroup}>
-                    <label>Email Subject:</label>
+                    <label>{t('manage.steps.sendQR.emailSubject')}</label>
                     <input 
                       type="text" 
                       value={emailSubject}
                       onChange={(e) => setEmailSubject(e.target.value)}
                       className={styles.textInput}
-                      placeholder="Enter email subject..."
+                      placeholder={t('manage.steps.sendQR.emailSubjectPlaceholder')}
                     />
                   </div>
                   
                   <div className={styles.inputGroup}>
-                    <label>Email Message:</label>
+                    <label>{t('manage.steps.sendQR.emailMessage')}</label>
                     <textarea 
                       value={emailMessage}
                       onChange={(e) => setEmailMessage(e.target.value)}
                       className={styles.textArea}
-                      placeholder={`Enter email message... Use {{Name}} for attendee name and {{QRcode}} for QR code. Press Enter for line breaks.`}
+                      placeholder={t('manage.steps.sendQR.messagePlaceholder')}
                       rows={8}
                     />
                   </div>
                   
                   <div className={styles.testEmailSection}>
-                    <h5>🧪 Test Your Template</h5>
+                    <h5>{t('manage.steps.sendQR.testEmail')}</h5>
                     <div className={styles.inputGroup}>
-                      <label>Test Email Address:</label>
+                      <label>{t('manage.steps.sendQR.testEmailLabel')}</label>
                       <input 
                         type="email" 
                         value={testEmailAddress}
                         onChange={(e) => setTestEmailAddress(e.target.value)}
                         className={styles.textInput}
-                        placeholder="Enter email address to send test..."
+                        placeholder={t('manage.steps.sendQR.testEmailPlaceholder')}
                       />
                     </div>
                     <button 
@@ -722,14 +726,14 @@ const ManagePage = () => {
                       {loadingTestEmail ? (
                         <>
                           <div className={styles.buttonSpinner}></div>
-                          Sending Test...
+                          {t('manage.steps.sendQR.sendingTestButton')}
                         </>
                       ) : (
-                        <>🧪 Send Test Email</>
+                        <>{t('manage.steps.sendQR.sendTestButton')}</>
                       )}
                     </button>
                     <p className={styles.hint}>
-                      💡 This will send a test email using "Test User" as the name placeholder.
+                      {t('manage.steps.sendQR.testHint')}
                     </p>
                   </div>
                   
@@ -742,10 +746,10 @@ const ManagePage = () => {
                       {loadingTemplate ? (
                         <>
                           <div className={styles.buttonSpinner}></div>
-                          Saving...
+                          {t('manage.steps.sendQR.savingButton')}
                         </>
                       ) : (
-                        <>💾 Save Template</>
+                        <>{t('manage.steps.sendQR.saveButton')}</>
                       )}
                     </button>
                     
@@ -754,7 +758,7 @@ const ManagePage = () => {
                       className={styles.secondaryButton}
                       disabled={loadingTemplate}
                     >
-                      ❌ Cancel
+                      ❌ {t('common.cancel')}
                     </button>
                   </div>
                 </div>
@@ -771,14 +775,14 @@ const ManagePage = () => {
                   {loadingEmail ? (
                     <>
                       <div className={styles.buttonSpinner}></div>
-                      Sending Emails...
+                      {t('manage.steps.sendQR.sendingButton')}
                     </>
                   ) : haveNotInvited === -1 ? (
-                    <>📊 Calculating Count...</>
+                    <>{t('manage.steps.sendQR.calculatingButton')}</>
                   ) : haveNotInvited === 0 ? (
-                    <>✅ All Attendees Notified</>
+                    <>{t('manage.steps.sendQR.allNotifiedButton')}</>
                   ) : (
-                    <>📤 Send to New Attendees ({haveNotInvited})</>
+                    <>{t('manage.steps.sendQR.sendNewButton', { count: haveNotInvited })}</>
                   )}
                 </button>
                 
@@ -790,16 +794,16 @@ const ManagePage = () => {
                   {loadingEmail ? (
                     <>
                       <div className={styles.buttonSpinner}></div>
-                      Sending Emails...
+                      {t('manage.steps.sendQR.sendingButton')}
                     </>
                   ) : (
-                    <>📬 Resend to All Attendees</>
+                    <>{t('manage.steps.sendQR.sendAllButton')}</>
                   )}
                 </button>
               </div>
               
               <p className={styles.hint}>
-                💡 QR codes are unique to each attendee and contain their registration information
+                {t('manage.steps.sendQR.qrHint')}
               </p>
             </div>
           </div>
@@ -809,30 +813,20 @@ const ManagePage = () => {
         {(spreadsheetId && !loading && !loadingSpreadsheet) && (
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <h3>🎯 Step 5: Start Check-In</h3>
-              <p>Navigate to the check-in station to begin scanning QR codes</p>
+              <h3>{t('manage.steps.startCheckin.title')}</h3>
+              <p>{t('manage.steps.startCheckin.description')}</p>
             </div>
 
             <div className={styles.actionSection}>
               <button 
-                onClick={() => navigate(`/checkin?spreadsheetId=${spreadsheetId}`)} 
+                onClick={() => navigate(`/event/${spreadsheetId}/checkin`)}
                 className={styles.primaryButton}
               >
-                🚀 Go to Check-In Station
+                {t('manage.steps.startCheckin.startButton')}
               </button>
-              
-              <p className={styles.hint}>
-                💡 Use this on a tablet or phone at your event entrance for easy scanning
-              </p>
             </div>
           </div>
         )}
-
-        <div className={styles.footer}>
-          <button onClick={() => navigate('/')} className={styles.backButton}>
-            ← Back to Home
-          </button>
-        </div>
       </div>
     </div>
   );

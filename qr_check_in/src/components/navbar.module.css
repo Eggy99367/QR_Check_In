@@ -17,6 +17,12 @@
     align-items: center;
 }
 
+.navRightSection {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
 .navLinksContainer{
     display: flex;
     flex-direction: row;
@@ -79,6 +85,10 @@
         font-size: 18px;
     }
 
+    .navRightSection {
+        gap: 15px;
+    }
+
     .navLinksContainer {
         gap: 15px;
     }
@@ -106,6 +116,10 @@
 
     .logo {
         font-size: 16px;
+    }
+
+    .navRightSection {
+        gap: 10px;
     }
 
     .navLinksContainer {

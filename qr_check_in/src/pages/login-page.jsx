@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../hooks/useTranslation';
 import styles from './login-page.module.css';
 import Cookies from "js-cookie";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isLoggedin, setIsLoggedin] = useState(false);
 
   const handleGoogleLogin = async () => {
@@ -39,8 +41,8 @@ const LoginPage = () => {
     <div className="pageContainer">
       <div className={styles.loginContainer}>
         <div className={styles.loginBox}>
-          <h1 className={styles.title}>Welcome to QR Check-In</h1>
-          <p className={styles.subtitle}>Sign in to continue</p>
+          <h1 className={styles.title}>{t('login.title')}</h1>
+          <p className={styles.subtitle}>{t('login.subtitle')}</p>
           
           <button
             onClick={handleGoogleLogin}
@@ -74,7 +76,7 @@ const LoginPage = () => {
                     fill="#ea4335"
                 />
             </svg>
-            Sign in with Google
+            {t('login.googleButton')}
           </button>
         </div>
       </div>

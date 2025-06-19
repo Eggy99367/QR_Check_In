@@ -1,0 +1,85 @@
+.languageSwitcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.languageIcon {
+  font-size: 16px;
+  color: var(--dark-text);
+}
+
+.languageSelect {
+  background-color: white;
+  color: var(--text-color);
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  padding: 10px 35px 10px 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 120px;
+  height: auto;
+  /* Match the logout button style */
+  box-sizing: border-box;
+  /* Remove default arrow */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  /* Add custom arrow */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+}
+
+.languageSelect:hover {
+  border-color: var(--primary-color);
+  background-color: var(--section-bg);
+}
+
+.languageSelect:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(7, 81, 240, 0.2);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .languageSwitcher {
+    gap: 5px;
+  }
+
+  .languageIcon {
+    font-size: 14px;
+  }
+
+  .languageSelect {
+    font-size: 13px;
+    padding: 8px 35px 8px 16px;
+    min-width: 100px;
+    min-height: 36px;
+    background-position: right 12px center;
+    background-size: 14px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .languageSwitcher {
+    gap: 4px;
+  }
+
+  .languageIcon {
+    font-size: 12px;
+  }
+
+  .languageSelect {
+    font-size: 12px;
+    padding: 6px 30px 6px 12px;
+    min-width: 90px;
+    min-height: 32px;
+    background-position: right 10px center;
+    background-size: 12px 12px;
+  }
+} 

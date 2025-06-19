@@ -157,6 +157,7 @@
 .footerLink:hover {
   color: var(--primary-color);
   text-decoration: none;
+  background-color: transparent !important;
 }
 
 .separator {

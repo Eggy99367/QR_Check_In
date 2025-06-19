@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTranslation } from '../hooks/useTranslation';
+import { useLanguage } from '../contexts/LanguageContext';
 import Dropdown from '../components/dropdown';
 import styles from './checkin-page.module.css';
 import Cookies from "js-cookie";
@@ -12,6 +14,8 @@ import * as Utils from '../utils/googleAPIUtils';
 
 const CheckInPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { currentLanguage } = useLanguage();
   const hasInitialized = useRef(false);
   const accessToken = Cookies.get('access_token');
   const [searchParams] = useSearchParams();
@@ -116,7 +120,7 @@ const CheckInPage = () => {
     var updatedData = await updateCheckInList(false);
     if (!(email in updatedData.values)){
       document.getElementById("errorAudio").play();
-      toast.error(`${email} is not in the check-in list!`);
+      toast.error(t('checkin.messages.notInList', { email }));
       return false;
     }
     const curTime = Utils.getTime();
@@ -129,7 +133,7 @@ const CheckInPage = () => {
         `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
         "ROWS", [updateRowData], navigate);
       document.getElementById("warningAudio").play();
-      toast.warning(`${rowData["Name"]} checked-in before!`);
+      toast.warning(t('checkin.messages.alreadyCheckedIn', { name: rowData["Name"] }));
       return false;
     }
     
@@ -144,7 +148,7 @@ const CheckInPage = () => {
                           `R${rowData["rowIndex"]}C1:R${rowData["rowIndex"]}C${updateRowData.length}`,
                           "ROWS", [updateRowData], navigate);
     document.getElementById("successAudio").play();
-    toast.success(`${rowData["Name"]} check-in successful!`);
+    toast.success(t('checkin.messages.checkInSuccess', { name: rowData["Name"] }));
     return true;
   }
 
@@ -193,9 +197,96 @@ const CheckInPage = () => {
         // console.warn("Error:", error);
       }
     );
+
+    // Translate html5-qrcode UI text
+    setTimeout(() => {
+      const readerElement = document.getElementById('reader');
+      if (readerElement) {
+        // Only translate if current language is Chinese
+        if (currentLanguage === 'zh-TW') {
+          // Replace button text
+          const buttons = readerElement.querySelectorAll('button');
+          buttons.forEach(button => {
+            if (button.textContent.includes('Request Camera Permissions')) {
+              button.textContent = button.textContent.replace('Request Camera Permissions', '請求相機權限');
+            }
+            if (button.textContent.includes('Start Scanning')) {
+              button.textContent = button.textContent.replace('Start Scanning', '開始掃描');
+            }
+            if (button.textContent.includes('Stop Scanning')) {
+              button.textContent = button.textContent.replace('Stop Scanning', '停止掃描');
+            }
+          });
+
+          // Replace span text
+          const spans = readerElement.querySelectorAll('span');
+          spans.forEach(span => {
+            if (span.textContent.includes('Request Camera Permissions')) {
+              span.textContent = span.textContent.replace('Request Camera Permissions', '請求相機權限');
+            }
+            if (span.textContent.includes('Unable to access camera')) {
+              span.textContent = span.textContent.replace('Unable to access camera', '無法訪問相機');
+            }
+            if (span.textContent.includes('Camera scan is on')) {
+              span.textContent = span.textContent.replace('Camera scan is on', '相機掃描已開啟');
+            }
+          });
+        }
+      }
+    }, 100);
+
+    // Set up a MutationObserver to catch dynamically added content
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const element = node;
+            
+            // Only translate if current language is Chinese
+            if (currentLanguage === 'zh-TW') {
+              // Check buttons
+              const buttons = element.querySelectorAll ? element.querySelectorAll('button') : [];
+              buttons.forEach(button => {
+                if (button.textContent.includes('Request Camera Permissions')) {
+                  button.textContent = button.textContent.replace('Request Camera Permissions', '請求相機權限');
+                }
+                if (button.textContent.includes('Start Scanning')) {
+                  button.textContent = button.textContent.replace('Start Scanning', '開始掃描');
+                }
+                if (button.textContent.includes('Stop Scanning')) {
+                  button.textContent = button.textContent.replace('Stop Scanning', '停止掃描');
+                }
+              });
+
+              // Check spans
+              const spans = element.querySelectorAll ? element.querySelectorAll('span') : [];
+              spans.forEach(span => {
+                if (span.textContent.includes('Request Camera Permissions')) {
+                  span.textContent = span.textContent.replace('Request Camera Permissions', '請求相機權限');
+                }
+                if (span.textContent.includes('Unable to access camera')) {
+                  span.textContent = span.textContent.replace('Unable to access camera', '無法訪問相機');
+                }
+                if (span.textContent.includes('Camera scan is on')) {
+                  span.textContent = span.textContent.replace('Camera scan is on', '相機掃描已開啟');
+                }
+              });
+            }
+          }
+        });
+      });
+    });
+
+    const readerElement = document.getElementById('reader');
+    if (readerElement) {
+      observer.observe(readerElement, { childList: true, subtree: true });
+    }
   
-    return () => scanner.clear(); // Cleanup
-  }, []);
+    return () => {
+      scanner.clear(); // Cleanup
+      observer.disconnect();
+    };
+  }, [currentLanguage]);
 
   return (
     <div className="pageContainer">
@@ -205,34 +296,34 @@ const CheckInPage = () => {
       
       <div className={styles.contentBox}>
         <div className={styles.header}>
-          <h2>🎯 Check-In Station</h2>
+          <h2>{t('checkin.title')}</h2>
           <h3 className={styles.eventName}>
-            {spreadsheetName === "" ? "Loading event..." : spreadsheetName}
+            {spreadsheetName === "" ? t('checkin.eventLoading') : spreadsheetName}
           </h3>
         </div>
 
         <div className={styles.scannerContainer}>
-          <h4 className={styles.scannerTitle}>📱 Scan QR Code</h4>
+          <h4 className={styles.scannerTitle}>{t('checkin.scanTitle')}</h4>
           <div className={styles.scannerWrapper}>
             <div id="reader"></div>
           </div>
           <p className={styles.scannerHint}>
-            💡 Point the camera at a QR code to check in attendees
+            {t('checkin.scanHint')}
           </p>
         </div>
 
         <div className={styles.statsContainer}>
           <div className={styles.statCard}>
             <div className={styles.statNumber}>{totalRegistrations}</div>
-            <div className={styles.statLabel}>Total Registered</div>
+            <div className={styles.statLabel}>{t('checkin.stats.totalRegistered')}</div>
           </div>
           <div className={styles.statCard}>
             <div className={styles.statNumber}>{checkedIn}</div>
-            <div className={styles.statLabel}>Checked In</div>
+            <div className={styles.statLabel}>{t('checkin.stats.checkedIn')}</div>
           </div>
           <div className={styles.statCard}>
             <div className={styles.statNumber}>{notCheckedIn}</div>
-            <div className={styles.statLabel}>Remaining</div>
+            <div className={styles.statLabel}>{t('checkin.stats.remaining')}</div>
           </div>
         </div>
 
@@ -248,13 +339,13 @@ const CheckInPage = () => {
             ></div>
           </div>
           <div className={styles.progressText}>
-            {totalRegistrations > 0 ? Math.round((checkedIn / totalRegistrations) * 100) : 0}% Attendance
+            {totalRegistrations > 0 ? Math.round((checkedIn / totalRegistrations) * 100) : 0}% {t('checkin.attendance')}
           </div>
         </div>
 
         <div className={styles.footer}>
           <button onClick={() => navigate('/select-event')} className={styles.backButton}>
-            ← Back to Event Selection
+            {t('checkin.backButton')}
           </button>
         </div>
       </div>

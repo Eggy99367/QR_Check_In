@@ -136,13 +136,22 @@ a:hover {
 .dropdown {
   width: 100%;
   height: 40px;
-  padding: 10px;
+  padding: 10px 35px 10px 10px;
   border: 1px solid #e2e8f0;
   border-radius: 5px;
   font-size: 16px;
   font-weight: 500;
   color: var(--text-color);
   background-color: var(--section-bg);
+  /* Remove default arrow */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  /* Add custom arrow */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
 }
 
 .dropdown:disabled {
@@ -242,7 +251,9 @@ div#reader img[src^="data:image/svg+xml;base64"][style*="top: 4px"][style*="righ
   .dropdown {
     font-size: 16px;
     min-height: 44px;
-    padding: 12px;
+    /* padding: 12px 35px 12px 12px; */
+    /* background-position: right 12px center; */
+    /* background-size: 16px 16px; */
   }
 
   div#reader {

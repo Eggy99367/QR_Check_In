@@ -1,13 +1,16 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../hooks/useTranslation';
 import styles from './privacy-page.module.css';
 
 const PrivacyPage = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="pageContainer">
       <div className={styles.contentBox}>
         <div className={styles.header}>
-          <h1>Privacy Policy</h1>
-          <p className={styles.lastUpdated}>Last updated: June 5, 2024</p>
+          <h1>{t('privacy.title')}</h1>
+          <p className={styles.lastUpdated}>{t('privacy.lastUpdated')}</p>
         </div>
 
         <div className={styles.section}>
@@ -72,7 +75,7 @@ const PrivacyPage = () => {
 
         <div className={styles.footer}>
           <Link to="/" className={styles.backButton}>
-            ← Back to Home
+            {t('privacy.backButton')}
           </Link>
         </div>
       </div>
