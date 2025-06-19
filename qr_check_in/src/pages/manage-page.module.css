@@ -381,7 +381,7 @@
 .textInput:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(7, 81, 240, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .urlInput {
@@ -491,4 +491,62 @@
   background-color: var(--light-text);
   color: white;
   transform: translateY(-1px);
+}
+
+.textArea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  background-color: var(--background);
+  transition: var(--transition);
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+}
+
+.textArea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.emailEditor {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  background-color: var(--background);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.emailEditorActions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.emailEditorActions button {
+  min-width: 120px;
+}
+
+.testEmailSection {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: var(--section-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  border-left: 4px solid #10b981;
+}
+
+.testEmailSection h5 {
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }

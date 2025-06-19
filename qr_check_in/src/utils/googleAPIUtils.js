@@ -10,7 +10,19 @@ export function getTime(){
 
 export async function generateQRCodeBase64(data) {
   try {
-    const base64 = await QRCode.toDataURL(data);
+    console.log('Generating QR code for:', data);
+    const base64 = await QRCode.toDataURL(data, {
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      quality: 0.92,
+      margin: 1,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      },
+      width: 200
+    });
+    console.log('QR code generated successfully, length:', base64.length);
     return base64;
   } catch (err) {
     console.error('Failed to generate QR code:', err);

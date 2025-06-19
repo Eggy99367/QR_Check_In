@@ -8,13 +8,53 @@ import * as Utils from '../utils/googleAPIUtils';
 async function createEmail(to, name, subject, message) {
   message = message.replace("{{Name}}", name);
   const qrCodeImage = await Utils.generateQRCodeBase64(to);
-  message = message.replace("{{QRcode}}", `<img src="${qrCodeImage}" alt="QR Code" style="width:200px;height:200px;" />`);
-  const email = 
-    `To: ${to}\r\n` +
-    `Subject: ${subject}\r\n` +
-    `Content-Type: text/html; charset="UTF-8"\r\n` +
-    `\r\n` +
-    `${message}`;
+  
+  if (qrCodeImage) {
+    // Use Content-ID for embedded attachment instead of base64 data URL
+    message = message.replace("{{QRcode}}", 
+      `<div style="text-align: center; margin: 20px 0;">
+        <img src="cid:qrcode" alt="QR Code for ${to}" style="width:200px;height:200px;display:block;margin:0 auto;border:2px solid #333;" />
+        <p style="font-size:12px;color:#666;margin-top:10px;">QR Code for check-in</p>
+      </div>`
+    );
+  } else {
+    console.error('QR code generation failed, using fallback');
+    // Fallback if QR code generation fails
+    message = message.replace("{{QRcode}}", 
+      `<div style="text-align: center; margin: 20px 0; padding: 20px; border: 2px solid #ccc; background-color: #f9f9f9;">
+        <p style="color: #666;">QR Code could not be generated</p>
+        <p style="font-size: 12px;">Please contact support for assistance</p>
+      </div>`
+    );
+  }
+  
+  // Create multipart email with attachment
+  const boundary = `boundary_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  let email = `To: ${to}\r\n`;
+  email += `Subject: ${subject}\r\n`;
+  email += `Content-Type: multipart/related; boundary="${boundary}"\r\n`;
+  email += `\r\n`;
+  
+  // HTML body part
+  email += `--${boundary}\r\n`;
+  email += `Content-Type: text/html; charset="UTF-8"\r\n`;
+  email += `\r\n`;
+  email += `${message}\r\n`;
+  
+  // QR code attachment part (if generated successfully)
+  if (qrCodeImage) {
+    const base64Data = qrCodeImage.split(',')[1]; // Remove data URL prefix
+    email += `--${boundary}\r\n`;
+    email += `Content-Type: image/png\r\n`;
+    email += `Content-Transfer-Encoding: base64\r\n`;
+    email += `Content-ID: <qrcode>\r\n`;
+    email += `Content-Disposition: inline; filename="qrcode.png"\r\n`;
+    email += `\r\n`;
+    email += `${base64Data}\r\n`;
+  }
+  
+  email += `--${boundary}--\r\n`;
 
   const encodedEmail = btoa(encodeURIComponent(email).replace(/%([0-9A-F]{2})/g, (match, p1) =>
     String.fromCharCode(parseInt(p1, 16))
@@ -44,6 +84,13 @@ const ManagePage = () => {
   const [loadingSpreadsheet, setLoadingSpreadsheet] = useState(false);
   const [loadingCheckIn, setLoadingCheckIn] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
+  const [loadingSheetCreation, setLoadingSheetCreation] = useState(false);
+  const [showEmailEditor, setShowEmailEditor] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [loadingTestEmail, setLoadingTestEmail] = useState(false);
 
   const checkInListSheetTitle = import.meta.env.VITE_CHECKINLISTSHEETTITLE;
   const emailTemplateSheetTitle = import.meta.env.VITE_EMAILTEMPLATESHEETTITLE;
@@ -120,7 +167,6 @@ const ManagePage = () => {
 
   // Copy a sheet from a template spreadsheet to the current spreadsheet
   const copySheet = async (templateSheetId, sheetName) => {
-    console.log(`start copying sheet ${sheetName} from ${templateSheetId} to ${spreadsheetId}`);
     const copyRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${import.meta.env.VITE_TEMPLATE_SPREADSHEET_ID}/sheets/${templateSheetId}:copyTo`,
       {
@@ -163,16 +209,22 @@ const ManagePage = () => {
       }),
     });
     await Utils.getSpreadsheetInfo(accessToken, spreadsheetId, navigate, setSpreadsheetName, setsheetsObj);
-    console.log("Sheet copied and renamed!");
   }
 
   // Create a check-in sheet and an email template sheet if they don't exist
   const handleCreateCheckInSheet = async () => {
-    if(!(checkInListSheetTitle in sheetsObj)){
-      await copySheet(import.meta.env.VITE_CHECKIN_SHEET_ID, checkInListSheetTitle);
-    }
-    if(!(emailTemplateSheetTitle in sheetsObj)){
-      await copySheet(import.meta.env.VITE_EMAIL_TEMPLATE_SHEET_ID, emailTemplateSheetTitle);
+    try {
+      setLoadingSheetCreation(true);
+      if(!(checkInListSheetTitle in sheetsObj)){
+        await copySheet(import.meta.env.VITE_CHECKIN_SHEET_ID, checkInListSheetTitle);
+      }
+      if(!(emailTemplateSheetTitle in sheetsObj)){
+        await copySheet(import.meta.env.VITE_EMAIL_TEMPLATE_SHEET_ID, emailTemplateSheetTitle);
+      }
+    } catch (error) {
+      console.error("Error creating sheets:", error);
+    } finally {
+      setLoadingSheetCreation(false);
     }
   }
 
@@ -188,6 +240,109 @@ const ManagePage = () => {
     handleGetSheetInfo(sheetTitle);
   }
 
+  // Calculate how many attendees haven't been invited
+  const calculateHaveNotInvited = async () => {
+    try {
+      const checkInList = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, "R1C1:R1048576C6", "ROWS", navigate);
+      if(checkInList.length <= 1) {
+        setHaveNotInvited(0);
+        return;
+      }
+      
+      var checkInListColumns = checkInList[0];
+      var tempHaveNotInvited = 0;
+      
+      for (const row of checkInList.slice(1)){
+        var dataObj = {};
+        for (let colIndex = 0; colIndex < row.length; colIndex++){
+          if(checkInListColumns[colIndex] !== "Email"){
+            dataObj[checkInListColumns[colIndex]] = row[colIndex];
+          }
+        }
+        if(!("Verification Mail Sent" in dataObj) || dataObj["Verification Mail Sent"] == ""){
+          tempHaveNotInvited++;
+        }
+      }
+      setHaveNotInvited(tempHaveNotInvited);
+    } catch (error) {
+      console.error("Error calculating uninvited count:", error);
+      setHaveNotInvited(0);
+    }
+  };
+
+  // Fetch current email template
+  const fetchEmailTemplate = async () => {
+    try {
+      setLoadingTemplate(true);
+      const emailTemplates = await Utils.getSheetData(accessToken, spreadsheetId, emailTemplateSheetTitle, `R2C1:R4C1`, 'COLUMNS', navigate);
+      if (emailTemplates && emailTemplates[0] && emailTemplates[0].length >= 3) {
+        setEmailSubject(emailTemplates[0][0] || "");
+        // Convert <br> tags to line breaks for editing
+        const messageWithLineBreaks = (emailTemplates[0][2] || "").replace(/<br\s*\/?>/gi, '\n');
+        setEmailMessage(messageWithLineBreaks);
+      }
+    } catch (error) {
+      console.error("Error fetching email template:", error);
+    } finally {
+      setLoadingTemplate(false);
+    }
+  };
+
+  // Save email template changes
+  const saveEmailTemplate = async () => {
+    try {
+      setLoadingTemplate(true);
+      // Update subject (R2C1)
+      await Utils.updateSheetData(accessToken, spreadsheetId, emailTemplateSheetTitle, "R2C1:R2C1", "ROWS", [[emailSubject]], navigate);
+      // Convert line breaks to <br> tags for HTML email
+      const messageWithBrTags = emailMessage.replace(/\n/g, '<br>');
+      // Update message (R4C1)
+      await Utils.updateSheetData(accessToken, spreadsheetId, emailTemplateSheetTitle, "R4C1:R4C1", "ROWS", [[messageWithBrTags]], navigate);
+      setShowEmailEditor(false);
+    } catch (error) {
+      console.error("Error saving email template:", error);
+    } finally {
+      setLoadingTemplate(false);
+    }
+  };
+
+  // Open email editor and fetch current template
+  const handleEditEmailTemplate = () => {
+    setShowEmailEditor(true);
+    fetchEmailTemplate();
+  };
+
+  // Send test email
+  const sendTestEmail = async () => {
+    if (!testEmailAddress.trim()) {
+      alert("Please enter a test email address");
+      return;
+    }
+
+    try {
+      setLoadingTestEmail(true);
+      // Convert line breaks to <br> tags for HTML email
+      const messageWithBrTags = emailMessage.replace(/\n/g, '<br>');
+      const response = await sendEmail(
+        testEmailAddress, 
+        "Test User", // Use a test name
+        emailSubject || "Test Subject", 
+        messageWithBrTags || "Test message"
+      );
+      
+      if (response.ok) {
+        alert("Test email sent successfully!");
+      } else {
+        alert("Failed to send test email. Please check your template and try again.");
+      }
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      alert("Error sending test email. Please try again.");
+    } finally {
+      setLoadingTestEmail(false);
+    }
+  };
+
   // Update the check-in list
   const handleUpdateCheckInList = async () => {
     try {
@@ -199,8 +354,6 @@ const ManagePage = () => {
       if (emails.length > 0){emails = emails[0]}
       var names = (await Utils.getSheetData(accessToken, spreadsheetId, selectedSheetTitle, `R2C${nameColumnNumber}:R1048576C${nameColumnNumber}`, "COLUMNS", navigate));
       if (names.length > 0){names = names[0]}
-
-
 
       const checkInList = await Utils.getSheetData(accessToken, spreadsheetId, checkInListSheetTitle, "R1C1:R1048576C6", "ROWS", navigate);
       var checkInListFirstEmptyRowNum = checkInList.length + 1;
@@ -228,7 +381,6 @@ const ManagePage = () => {
       var updateNameValues = [];
       for (let responseIndex = 0; responseIndex < emails.length; responseIndex++){
         if(!(emails[responseIndex] in checkInListData)){
-          // console.log(`adding ${emails[responseIndex]}`);
           updateEmailValues.push(emails[responseIndex]);
           updateNameValues.push(names[responseIndex]);
         }
@@ -318,6 +470,13 @@ const ManagePage = () => {
     handleGetSpreadsheetsInfo();
   }, []);
 
+  // Calculate uninvited count when email template sheet becomes available
+  useEffect(() => {
+    if (spreadsheetId && (emailTemplateSheetTitle in sheetsObj) && !loading && !loadingSpreadsheet) {
+      calculateHaveNotInvited();
+    }
+  }, [spreadsheetId, sheetsObj, loading, loadingSpreadsheet]);
+
   return (
     <div className="pageContainer">
       <div className={styles.contentBox}>
@@ -393,7 +552,34 @@ const ManagePage = () => {
                   </div>
                 </div>
 
-                {selectedSheetTitle && (
+                <div className={styles.subsection}>
+                  <h4>🛠️ Setup Check-In System</h4>
+                  <p className={styles.description}>
+                    Create the necessary sheets for your check-in system if they don't already exist.
+                  </p>
+                  <div className={styles.actionSection}>
+                    <button 
+                      onClick={handleCreateCheckInSheet} 
+                      className={styles.primaryButton}
+                      disabled={Object.keys(sheetsObj).length === 0 || (checkInListSheetTitle in sheetsObj && emailTemplateSheetTitle in sheetsObj) || loadingSheetCreation}
+                    >
+                      {loadingSheetCreation ? (
+                        <>
+                          <div className={styles.buttonSpinner}></div>
+                          Creating Sheets...
+                        </>
+                      ) : (checkInListSheetTitle in sheetsObj && emailTemplateSheetTitle in sheetsObj) ? 
+                        "✅ Check-In Sheets Ready" : 
+                        "📋 Create Check-In Sheets"
+                      }
+                    </button>
+                    <p className={styles.hint}>
+                      💡 This creates a "Check-In List" sheet and "Email Template" sheet in your spreadsheet
+                    </p>
+                  </div>
+                </div>
+
+                {selectedSheetTitle && (checkInListSheetTitle in sheetsObj) && (
                   <div className={styles.subsection}>
                     <h4>📝 Column Mapping</h4>
                     <div className={styles.columnMapping}>
@@ -426,7 +612,7 @@ const ManagePage = () => {
         )}
 
         {/* Step 3: Sync Data */}
-        {(emailColumn && nameColumn && !loading && !loadingSpreadsheet) && (
+        {(emailColumn && nameColumn && !loading && !loadingSpreadsheet && (checkInListSheetTitle in sheetsObj)) && (
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
               <h3>🔄 Step 3: Sync Attendee Data</h3>
@@ -463,11 +649,116 @@ const ManagePage = () => {
         )}
 
         {/* Step 4: Send QR Codes */}
-        {(haveNotInvited > 0 && !loading && !loadingSpreadsheet && !loadingCheckIn) && (
+        {(!loading && !loadingSpreadsheet && !loadingCheckIn && (emailTemplateSheetTitle in sheetsObj)) && (
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
               <h3>📧 Step 4: Send QR Codes</h3>
               <p>Email QR codes to your attendees for check-in</p>
+            </div>
+
+            <div className={styles.subsection}>
+              <h4>✏️ Email Template</h4>
+              <div className={styles.actionSection}>
+                <button 
+                  onClick={handleEditEmailTemplate}
+                  className={styles.secondaryButton}
+                  disabled={loadingTemplate}
+                >
+                  {loadingTemplate ? (
+                    <>
+                      <div className={styles.buttonSpinner}></div>
+                      Loading Template...
+                    </>
+                  ) : (
+                    <>📝 Edit Email Template</>
+                  )}
+                </button>
+                <p className={styles.hint}>
+                  💡 Customize the subject and message for your QR code emails. Use {`{{Name}}`} and {`{{QRcode}}`} as placeholders. Press Enter for line breaks - no HTML needed!
+                </p>
+              </div>
+
+              {showEmailEditor && (
+                <div className={styles.emailEditor}>
+                  <div className={styles.inputGroup}>
+                    <label>Email Subject:</label>
+                    <input 
+                      type="text" 
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      className={styles.textInput}
+                      placeholder="Enter email subject..."
+                    />
+                  </div>
+                  
+                  <div className={styles.inputGroup}>
+                    <label>Email Message:</label>
+                    <textarea 
+                      value={emailMessage}
+                      onChange={(e) => setEmailMessage(e.target.value)}
+                      className={styles.textArea}
+                      placeholder={`Enter email message... Use {{Name}} for attendee name and {{QRcode}} for QR code. Press Enter for line breaks.`}
+                      rows={8}
+                    />
+                  </div>
+                  
+                  <div className={styles.testEmailSection}>
+                    <h5>🧪 Test Your Template</h5>
+                    <div className={styles.inputGroup}>
+                      <label>Test Email Address:</label>
+                      <input 
+                        type="email" 
+                        value={testEmailAddress}
+                        onChange={(e) => setTestEmailAddress(e.target.value)}
+                        className={styles.textInput}
+                        placeholder="Enter email address to send test..."
+                      />
+                    </div>
+                    <button 
+                      onClick={sendTestEmail}
+                      className={styles.secondaryButton}
+                      disabled={loadingTestEmail || !testEmailAddress.trim()}
+                    >
+                      {loadingTestEmail ? (
+                        <>
+                          <div className={styles.buttonSpinner}></div>
+                          Sending Test...
+                        </>
+                      ) : (
+                        <>🧪 Send Test Email</>
+                      )}
+                    </button>
+                    <p className={styles.hint}>
+                      💡 This will send a test email using "Test User" as the name placeholder.
+                    </p>
+                  </div>
+                  
+                  <div className={styles.emailEditorActions}>
+                    <button 
+                      onClick={saveEmailTemplate}
+                      className={styles.primaryButton}
+                      disabled={loadingTemplate}
+                    >
+                      {loadingTemplate ? (
+                        <>
+                          <div className={styles.buttonSpinner}></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>💾 Save Template</>
+                      )}
+                    </button>
+                    
+                    <button 
+                      onClick={() => setShowEmailEditor(false)}
+                      className={styles.secondaryButton}
+                      disabled={loadingTemplate}
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className={styles.actionSection}>
@@ -475,13 +766,17 @@ const ManagePage = () => {
                 <button 
                   onClick={() => handelSendEmail(false)} 
                   className={styles.primaryButton}
-                  disabled={loadingEmail}
+                  disabled={loadingEmail || haveNotInvited === 0}
                 >
                   {loadingEmail ? (
                     <>
                       <div className={styles.buttonSpinner}></div>
                       Sending Emails...
                     </>
+                  ) : haveNotInvited === -1 ? (
+                    <>📊 Calculating Count...</>
+                  ) : haveNotInvited === 0 ? (
+                    <>✅ All Attendees Notified</>
                   ) : (
                     <>📤 Send to New Attendees ({haveNotInvited})</>
                   )}
