@@ -14,7 +14,7 @@ const LoginPage = () => {
     const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const targetUrl = `https://accounts.google.com/o/oauth2/auth?redirect_uri=${encodeURIComponent(
       callbackUrl
-    )}&response_type=token&client_id=${googleClientId}&scope=https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/gmail.send%20https://www.googleapis.com/auth/drive.metadata.readonly`;
+    )}&response_type=token&client_id=${googleClientId}&scope=https://www.googleapis.com/auth/spreadsheets%20https://www.googleapis.com/auth/gmail.send%20https://www.googleapis.com/auth/drive.metadata.readonly`;
     window.location.href = targetUrl;
   };
 
